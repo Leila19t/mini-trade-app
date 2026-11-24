@@ -1,0 +1,27 @@
+{
+  "name": "mini-trade",
+  "version": "1.0.0",
+  "description": "Sarwa test application",
+  "main": "index.js",
+  "scripts": {
+    "dev": "pnpm --parallel --recursive run dev",
+    "typecheck": "pnpm --recursive run typecheck",
+    "test": "pnpm --recursive run test"
+  },
+  "keywords": [],
+  "author": "Leila Tarabih",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.23.0",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@12.23.0",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}
