@@ -1,4 +1,12 @@
-import type { PriceTick } from "@mini-trade/contracts";
+import { PriceEngine } from "./engine";
 
-const tick: PriceTick = { type: "price", symbol: "AAPL", price: 231.42, timestamp: Date.now() };
-console.log("mock server ready", tick);
+// Temporary entry point until the HTTP + WebSocket server exists:
+// starts the engine and logs a few live ticks so `pnpm dev` shows it working.
+const engine = new PriceEngine({ seed: Number(process.env.SEED ?? 42) });
+console.log(`price engine ready: ${engine.symbols().length} stocks`);
+
+setInterval(() => {
+  const ticks = engine.tick();
+  const sample = ticks.slice(0, 3).map((t) => `${t.symbol} ${t.price.toFixed(2)}`).join("  ");
+  console.log(`${ticks.length} ticks  ${sample}`);
+}, 1000);

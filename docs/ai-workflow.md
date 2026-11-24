@@ -44,3 +44,27 @@ How I used AI on this project: what I asked for, what it got right, and where I 
 
 - The AI is fast at diagnosis when it can read the actual files, rather than guessing from an error message.
 - It can be out of date on tooling (the Corepack change), so I check version-sensitive advice.
+
+### 2026-11-24: CLAUDE.md and contracts
+
+- Added `CLAUDE.md` so every AI session starts from the same context: repo map, commands, architecture rules (contracts first, validate at the boundary, Redux vs TanStack Query split), conventions and testing expectations.
+- Claude wrote the full contracts package from our earlier design. I reviewed the decisions:
+  - Price ticks are **batched** (`prices` message with many ticks) rather than one message per tick, so the client applies a batch in one state update.
+  - Server-sent **heartbeat** plus a `welcome` message announcing its interval, so the client can detect a dead socket (browsers can't send WebSocket ping frames).
+  - All HTTP endpoints in one `endpoints` map (route for the server, path builder and response schema for the client).
+  - The list response includes a small `trend` array for the sparklines, to avoid one history request per row.
+  - Today's change is derived on the client, not sent.
+- Verified: contracts and server typecheck with TypeScript 7.0.2, plus 10 quick parse/reject checks (bad ticker, negative price, empty batch, unknown range…).
+
+### 2026-11-25: design direction and scope
+
+- Design direction (mine): Sarwa's signature green so it feels familiar, no gradients, rich but purposeful motion. Claude pulled the exact palette from sarwa.co with the browser (green #07351A, off-white #F8F9F9, near-black #0A140A, accent yellow #FFB932).
+- Claude turned the Figma palette into 26 Light/Dark colour variables and bound all 395 colours in the screens to them, which gives dark mode for free and maps 1:1 to CSS variables in code. It then added: theme toggle, Google sign-in / user menu, account drawer, signed-out states, price-alert settings, alert notifications, dark versions of the key screens, and a motion spec.
+- Correction: a few new layers rendered wrong (black rows, solid chart fill, opaque scrim) because colour overrides were created with a placeholder colour and paint-level opacity didn't survive variable binding. Fixed by setting real colour values and using layer opacity; caught by checking screenshots, not by trusting the script's success.
+- Scope call (mine): ship the original brief first, then add extras if time allows. Decided: alerts are % moves, not price targets; sign-in only for the watchlist; Better Auth for Google sign-in; Render for hosting (I've used it before, and it avoids EC2 ops work).
+
+### 2026-11-25: price engine
+
+- Claude built the price engine in `apps/mock-server/src/engine` with 29 tests, verified (typecheck + tests) before writing to the repo.
+- Design choice it raised for review: the mock market trades 24/7, so there is no exchange "previous close" or "open". It renamed the contract fields to say what they are (`price24hAgo`, `high24h`, `low24h`, `volume24h`) and dropped `open`, rather than keep names that would mislead in a fintech codebase.
+- Finding: TypeScript 6+ no longer loads `@types/node` automatically, so `process` was unknown in the server. Fixed with `"types": ["node"]` in the server tsconfig and noted in CLAUDE.md.

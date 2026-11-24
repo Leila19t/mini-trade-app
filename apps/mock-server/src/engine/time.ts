@@ -1,0 +1,7 @@
+export const SECOND = 1_000;
+export const MINUTE = 60 * SECOND;
+export const HOUR = 60 * MINUTE;
+export const DAY = 24 * HOUR;
+export const WEEK = 7 * DAY;
+/** Volatility and drift are quoted per year; the mock market trades 24/7. */
+export const YEAR = 365.25 * DAY;
