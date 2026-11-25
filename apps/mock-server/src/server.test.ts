@@ -22,8 +22,9 @@ afterEach(() => t.close());
 const request = (path: string, init?: RequestInit) => fetch(`${t.baseUrl}${path}`, init);
 
 async function expectError(res: Response, status: number, code: ApiError["error"]["code"]) {
-  expect(res.status).toBe(status);
-  const body = ApiError.parse(await res.json());
+  const text = await res.text();
+  expect(res.status, `${res.url} answered ${text}`).toBe(status);
+  const body = ApiError.parse(JSON.parse(text));
   expect(body.error.code).toBe(code);
   return body;
 }

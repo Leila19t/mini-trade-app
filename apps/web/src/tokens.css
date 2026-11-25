@@ -1,0 +1,67 @@
+/*
+ * Design tokens, 1:1 with the "Theme" variable collection in Figma (Light / Dark modes).
+ * Figma "bg/surface" → CSS --bg-surface → Tailwind class bg-bg-surface (see index.css).
+ * Change colours in Figma first, then here. Dark mode applies with <html data-theme="dark">.
+ */
+
+:root {
+  --bg-canvas: #f8f9f9;
+  --bg-surface: #ffffff;
+  --bg-subtle: #eff2f0;
+  --bg-scrim: #0a140a;
+  --border-default: #e5e9e6;
+  --border-strong: #cdd4cf;
+  --text-primary: #0a140a;
+  --text-secondary: #3f4a42;
+  --text-muted: #848984;
+  --brand-primary: #07351a;
+  --brand-on-primary: #ffffff;
+  --brand-subtle: #e6efe9;
+  --price-up: #0e7a3f;
+  --price-up-subtle: #e7f4ec;
+  --price-down: #c2332b;
+  --price-down-subtle: #fcebea;
+  --accent-star: #ffb932;
+  --accent-star-subtle: #fff5de;
+  --accent-star-border: #ffd98a;
+  --warning-subtle: #fff7e6;
+  --warning-border: #ffd98a;
+  --warning-text: #7a4b00;
+  --warning-dot: #e08a00;
+  --inverse-surface: #0a140a;
+  --inverse-text: #ffffff;
+  --inverse-text-muted: #c3cbc5;
+
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg-canvas: #0b100d;
+  --bg-surface: #121915;
+  --bg-subtle: #1a231e;
+  --bg-scrim: #000000;
+  --border-default: #243029;
+  --border-strong: #34423a;
+  --text-primary: #f1f4f2;
+  --text-secondary: #b9c2bc;
+  --text-muted: #808a84;
+  --brand-primary: #7cd3a0;
+  --brand-on-primary: #062915;
+  --brand-subtle: #163022;
+  --price-up: #4cc38a;
+  --price-up-subtle: #12281b;
+  --price-down: #f07a74;
+  --price-down-subtle: #2d1716;
+  --accent-star: #ffb932;
+  --accent-star-subtle: #2e2610;
+  --accent-star-border: #5c4a1a;
+  --warning-subtle: #2a2110;
+  --warning-border: #5c4513;
+  --warning-text: #f5c66b;
+  --warning-dot: #f5a623;
+  --inverse-surface: #f1f4f2;
+  --inverse-text: #0a140a;
+  --inverse-text-muted: #4a544d;
+
+  color-scheme: dark;
+}

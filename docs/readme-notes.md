@@ -66,5 +66,6 @@ Points to fold into the final README. Delete this file before submitting.
 - Hosting on Render: one service (Node server also serves the built web app) + Render Postgres; same origin keeps cookies and WebSockets simple.
 
 ## Links to add
+- API docs: `docs/openapi.json`, or `/docs` on the running mock server (Swagger UI, try requests live).
 - Figma: architecture diagram + wireframes.
 - `docs/ai-workflow.md`.

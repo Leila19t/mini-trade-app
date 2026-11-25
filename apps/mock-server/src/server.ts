@@ -6,12 +6,16 @@ import { DEFAULT_CONFIG, type ServerConfig } from "./config";
 import { PriceEngine } from "./engine";
 import { createApiHandler } from "./http/api";
 import { HttpError, sendError } from "./http/respond";
+import { DOCS_HTML, openApiJson } from "./openapi/document";
 import { WatchlistStore } from "./watchlist-store";
 import { PriceStream } from "./ws/price-stream";
 
 export interface MockServer {
-  /** Starts listening. Pass port 0 for a random free port (tests). Resolves with the actual port. */
-  listen(port?: number): Promise<number>;
+  /**
+   * Starts listening. Pass port 0 for a random free port (tests). Resolves with the actual port.
+   * `host` defaults to all interfaces; tests pass "127.0.0.1" (see testing.ts).
+   */
+  listen(port?: number, host?: string): Promise<number>;
   close(): Promise<void>;
   readonly http: Server;
   readonly engine: PriceEngine;
@@ -33,7 +37,20 @@ export function createMockServer(overrides: Partial<ServerConfig> = {}): MockSer
     heartbeatIntervalMs: config.heartbeatIntervalMs,
   });
 
+  // Docs are served before the API handler, so simulated latency and errors never hit them.
+  const docs: Record<string, { type: string; body: string }> = {
+    "/api/openapi.json": { type: "application/json; charset=utf-8", body: openApiJson() },
+    "/docs": { type: "text/html; charset=utf-8", body: DOCS_HTML },
+  };
+
   const http = createServer((req, res) => {
+    const page = req.method === "GET" ? docs[new URL(req.url ?? "/", "http://localhost").pathname] : undefined;
+    if (page) {
+      res.writeHead(200, { "content-type": page.type });
+      res.end(page.body);
+      return;
+    }
+
     handleApi(req, res)
       .then((handled) => {
         if (!handled) sendError(res, new HttpError("NOT_FOUND", "Not found"));
@@ -55,10 +72,10 @@ export function createMockServer(overrides: Partial<ServerConfig> = {}): MockSer
     engine,
     stream,
     watchlists,
-    listen: (port = config.port) =>
+    listen: (port = config.port, host?: string) =>
       new Promise((resolve, reject) => {
         http.once("error", reject);
-        http.listen(port, () => resolve((http.address() as AddressInfo).port));
+        http.listen(port, host, () => resolve((http.address() as AddressInfo).port));
       }),
     close: () =>
       new Promise((resolve, reject) => {

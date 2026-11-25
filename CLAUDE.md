@@ -28,7 +28,11 @@ pnpm test             # run every package's tests
 pnpm --filter @mini-trade/web <script>      # one package
 pnpm --filter <pkg> add <dep>               # add a dependency to one package
 pnpm --filter <pkg> add <pkg> --workspace   # link a workspace package (workspace deps only!)
+pnpm --filter @mini-trade/server openapi    # regenerate docs/openapi.json after changing contracts
 ```
+
+API docs: `docs/openapi.json` (OpenAPI 3.1), served at `/api/openapi.json` with an
+interactive page at `/docs` while the mock server runs.
 
 Use pnpm only. Never run npm or yarn in this repo.
 
@@ -42,10 +46,46 @@ Use pnpm only. Never run npm or yarn in this repo.
   data is logged and dropped; it never crashes the UI.
 - **HTTP endpoints** are defined once in `contracts/src/api.ts` (`endpoints`). The server
   registers `route`; the client calls `path(...)` and parses with `response`.
+- **OpenAPI is generated** from the contracts (`contracts/src/openapi.ts`), never edited by
+  hand. A new endpoint needs an entry in its `docs` map (typecheck enforces it), and a
+  test fails if `docs/openapi.json` is stale.
 - **Imports flow one way:** apps → packages. Packages never import apps; apps never
   import each other.
 - **Dependencies live where they are used.** Shared dev tooling only at the root.
   Ask before adding a new dependency.
+
+### Web app structure (`apps/web/src`)
+
+```
+screens/       one per route: MarketsScreen (home), StockDetailScreen. Lay out views; no fetching logic
+views/         large sections built from components (e.g. the watchlist, the stock table, the chart panel)
+components/    small reusable pieces, grouped in folders: auth/, navigation/, more as needed
+helpers/       constants.ts, utils.ts (pure, framework-free), types.ts (UI-only types)
+hooks/         custom hooks (data, socket, media queries...)
+assets/        images, icons, fonts
+```
+
+Also at the root of `src`: `router.tsx` (every route), `App.tsx` (root layout: header +
+`<Outlet />`), `tokens.css` (design tokens), `index.css` (Tailwind setup + base styles).
+
+- Names: `*Screen` for screens, PascalCase files for components, `useX` for hooks.
+  Named exports, one component per file, no barrel `index.ts` files.
+- Data flows down: screens → views → components. Components don't fetch; hooks do.
+- **Routing:** React Router (`createBrowserRouter`). Routes: `/` MarketsScreen,
+  `/stocks/:symbol` StockDetailScreen, `*` NotFoundScreen. Build links with `paths` from
+  `helpers/constants.ts`, never hand-written strings.
+- **Styling:** Tailwind CSS v4 (Vite plugin), utility classes in the JSX, no CSS files per
+  component. `index.css` holds the Tailwind setup and base styles; `tokens.css` holds the
+  colours, mirroring the Figma "Theme" collection 1:1. Tailwind colour classes keep the
+  Figma group: `bg/surface` → `bg-bg-surface`, `text/muted` → `text-text-muted`,
+  `border/strong` → `border-border-strong`, `price/up` → `text-price-up`. The default
+  Tailwind palette is off, so only design-system colours exist. Dark mode is
+  `<html data-theme="dark">` (tokens switch automatically; `dark:` also works).
+  Page column: `mx-auto max-w-page px-6` (1120px content + 24px gutters, as in Figma).
+  Figma text with "normal" line height → `leading-[normal]`. Radii: 4px `rounded-sm`,
+  8px `rounded-lg`, pills `rounded-full`. Buttons need `cursor-pointer` (Tailwind's reset).
+- **Icons** are exported from Figma as-is into `assets/icons/` and used as `<img alt="">`
+  next to visible text or inside a labelled button.
 
 ### Client state
 

@@ -79,3 +79,23 @@ How I used AI on this project: what I asked for, what it got right, and where I 
   - **Snapshot on subscribe:** after (re)subscribing, the client gets current prices at once instead of waiting for each stock's next move.
 - Check on the tests: Claude broke the code on purpose (sent every tick to every socket; failed after the watchlist change instead of before) to confirm the tests catch it. 4 tests failed as expected, then passed again 5 runs in a row once the code was restored.
 
+### 2026-11-25: OpenAPI docs
+
+- I asked for OpenAPI docs and skipped a Postman collection to save time, since the role is frontend-focused.
+- Claude generated the OpenAPI 3.1 file from the zod contracts with zod's built-in `z.toJSONSchema`, so it needs no new dependency and can't drift from the code. Shared schemas (Ticker, Price, StockSummary…) become `$ref`d components, and the WebSocket message schemas are included so the socket is documented too.
+- Guard rails: a typed `docs` map means a new endpoint without docs fails typecheck, and a test fails if the checked-in `docs/openapi.json` is stale. The server serves `/api/openapi.json` and a Swagger UI page at `/docs`, outside the chaos layer so the docs never fail at random.
+
+- Correction: one server test failed on my Mac (404 instead of 400) but passed in Claude's sandbox. Cause: test servers listened on all interfaces while the tests connected to `127.0.0.1`, and macOS can hand out a port that another program already holds on `127.0.0.1`, so the request reached that program. Fixed by binding test servers to `127.0.0.1`. Error assertions now print the response body, so a failure like this shows where the answer came from.
+
+### 2026-11-25: web structure, routing and header
+
+- Folder structure for `apps/web/src` is mine (screens / views / components / helpers / hooks / assets); Claude scaffolded it and suggested `MarketsScreen` / `StockDetailScreen` names. Added React Router after Claude asked first, since it's a new dependency.
+- Header built from the Figma frame with the Figma MCP. Figma's temporary asset URLs were blocked on both Claude's sandbox and my machine, so Claude exported the four icons through the Figma plugin API instead: the same vectors, not redrawn. It also read all 26 Light/Dark theme variables into `tokens.css`.
+- Claude designed a small logo (brand-green square, rising price line, yellow accent dot) used in the header and as the favicon from one file.
+- Verified in headless Chrome at 1440px against the Figma frame: every element within 2px of its Figma position. Correction it caught itself: the header was 65px (64 + border) instead of Figma's 64 including the border.
+- No mobile header is designed yet, so below 640px Claude hid the search and made sign-in icon-only (still labelled for screen readers). To revisit in Figma.
+
+### 2026-11-25: Tailwind
+
+- I asked to move all styling to Tailwind (v4.3, latest). Claude kept the Figma tokens in `tokens.css` and mapped them into Tailwind's theme with the Figma group in the name (`bg-bg-surface`, `text-text-muted`), and switched off Tailwind's default palette so only design-system colours can be used.
+- Check: screenshots of the header before (CSS Modules) and after (Tailwind) at 1440, 800 and 390px compared pixel by pixel. The first pass differed by about 1,000 pixels: Tailwind's reset sets a 1.5 line height that shifted the pills by a fraction of a pixel. After making their wrappers flex, the two versions were pixel-identical at all three widths.

@@ -1,0 +1,835 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Mini Trade mock API",
+    "version": "1.0.0",
+    "description": "Mock backend for the Mini Trade take-home. It behaves like a real one: responses take 80–450 ms, about 2% of requests fail with 503, and WebSocket connections drop now and then. Start it with `CHAOS=off` to turn that off.\n\n**Live prices** use a WebSocket at `/ws` on the same host, which OpenAPI can't describe. The server sends `welcome` on connect; the client sends `subscribe` / `unsubscribe`; the server replies `subscribed`, sends a `prices` snapshot of new symbols, then batched `prices` updates and a `heartbeat` every few seconds. Message schemas: `ClientMessage` and `ServerMessage` below."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:4000",
+      "description": "Local mock server (pnpm dev)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Stocks",
+      "description": "Stock list, detail and chart history. Public."
+    },
+    {
+      "name": "Watchlist",
+      "description": "The user's starred stocks. One demo user until sign-in exists."
+    }
+  ],
+  "paths": {
+    "/api/stocks": {
+      "get": {
+        "operationId": "listStocks",
+        "summary": "List stocks",
+        "description": "Every stock with a price snapshot and a 24h trend for the sparkline. Live prices then arrive over the WebSocket.",
+        "tags": [
+          "Stocks"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockListResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL: unexpected server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "UNAVAILABLE: simulated outage (about 2% of requests by default). Safe to retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stocks/{symbol}": {
+      "get": {
+        "operationId": "getStock",
+        "summary": "Get stock detail",
+        "tags": [
+          "Stocks"
+        ],
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ticker"
+            },
+            "example": "AAPL"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BAD_REQUEST: invalid ticker or query parameter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND: no stock with this symbol.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL: unexpected server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "UNAVAILABLE: simulated outage (about 2% of requests by default). Safe to retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stocks/{symbol}/history": {
+      "get": {
+        "operationId": "getHistory",
+        "summary": "Get price history",
+        "description": "Chart points for one range. Every range agrees with the others at shared timestamps.",
+        "tags": [
+          "Stocks"
+        ],
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ticker"
+            },
+            "example": "AAPL"
+          },
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Range",
+              "default": "1D"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BAD_REQUEST: invalid ticker or query parameter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND: no stock with this symbol.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL: unexpected server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "UNAVAILABLE: simulated outage (about 2% of requests by default). Safe to retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/watchlist": {
+      "get": {
+        "operationId": "getWatchlist",
+        "summary": "Get the watchlist",
+        "tags": [
+          "Watchlist"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Watchlist"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL: unexpected server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "UNAVAILABLE: simulated outage (about 2% of requests by default). Safe to retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/watchlist/{symbol}": {
+      "put": {
+        "operationId": "addToWatchlist",
+        "summary": "Add a stock to the watchlist",
+        "description": "Idempotent: adding a stock that is already there changes nothing. Returns the whole list.",
+        "tags": [
+          "Watchlist"
+        ],
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ticker"
+            },
+            "example": "AAPL"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Watchlist"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BAD_REQUEST: invalid ticker or query parameter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND: no stock with this symbol.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL: unexpected server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "UNAVAILABLE: simulated outage (about 2% of requests by default). Safe to retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "removeFromWatchlist",
+        "summary": "Remove a stock from the watchlist",
+        "description": "Idempotent: removing a stock that isn't there changes nothing. Returns the whole list.",
+        "tags": [
+          "Watchlist"
+        ],
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ticker"
+            },
+            "example": "AAPL"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Watchlist"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BAD_REQUEST: invalid ticker or query parameter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL: unexpected server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "UNAVAILABLE: simulated outage (about 2% of requests by default). Safe to retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Ticker": {
+        "type": "string",
+        "pattern": "^[A-Z]{1,5}(\\.[A-Z]{1,2})?$"
+      },
+      "Price": {
+        "type": "number",
+        "exclusiveMinimum": 0
+      },
+      "Timestamp": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "Exchange": {
+        "type": "string",
+        "enum": [
+          "NASDAQ",
+          "NYSE"
+        ]
+      },
+      "Range": {
+        "type": "string",
+        "enum": [
+          "1D",
+          "1W",
+          "1M",
+          "3M",
+          "1Y",
+          "5Y"
+        ]
+      },
+      "StockSummary": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "$ref": "#/components/schemas/Ticker"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "exchange": {
+            "$ref": "#/components/schemas/Exchange"
+          },
+          "currency": {
+            "type": "string",
+            "const": "USD"
+          },
+          "price": {
+            "$ref": "#/components/schemas/Price"
+          },
+          "price24hAgo": {
+            "$ref": "#/components/schemas/Price"
+          },
+          "trend": {
+            "minItems": 2,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Price"
+            }
+          },
+          "updatedAt": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "required": [
+          "symbol",
+          "name",
+          "exchange",
+          "currency",
+          "price",
+          "price24hAgo",
+          "trend",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "StockListResponse": {
+        "type": "object",
+        "properties": {
+          "stocks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StockSummary"
+            }
+          }
+        },
+        "required": [
+          "stocks"
+        ],
+        "additionalProperties": false
+      },
+      "StockStats": {
+        "type": "object",
+        "properties": {
+          "price24hAgo": {
+            "$ref": "#/components/schemas/Price"
+          },
+          "high24h": {
+            "$ref": "#/components/schemas/Price"
+          },
+          "low24h": {
+            "$ref": "#/components/schemas/Price"
+          },
+          "week52High": {
+            "$ref": "#/components/schemas/Price"
+          },
+          "week52Low": {
+            "$ref": "#/components/schemas/Price"
+          },
+          "volume24h": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "marketCap": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "price24hAgo",
+          "high24h",
+          "low24h",
+          "week52High",
+          "week52Low",
+          "volume24h",
+          "marketCap"
+        ],
+        "additionalProperties": false
+      },
+      "StockDetail": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "$ref": "#/components/schemas/Ticker"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "exchange": {
+            "$ref": "#/components/schemas/Exchange"
+          },
+          "currency": {
+            "type": "string",
+            "const": "USD"
+          },
+          "price": {
+            "$ref": "#/components/schemas/Price"
+          },
+          "updatedAt": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/StockStats"
+          }
+        },
+        "required": [
+          "symbol",
+          "name",
+          "exchange",
+          "currency",
+          "price",
+          "updatedAt",
+          "stats"
+        ],
+        "additionalProperties": false
+      },
+      "HistoryPoint": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "price": {
+            "$ref": "#/components/schemas/Price"
+          }
+        },
+        "required": [
+          "timestamp",
+          "price"
+        ],
+        "additionalProperties": false
+      },
+      "HistoryResponse": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "$ref": "#/components/schemas/Ticker"
+          },
+          "range": {
+            "$ref": "#/components/schemas/Range"
+          },
+          "points": {
+            "minItems": 2,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HistoryPoint"
+            }
+          }
+        },
+        "required": [
+          "symbol",
+          "range",
+          "points"
+        ],
+        "additionalProperties": false
+      },
+      "Watchlist": {
+        "type": "object",
+        "properties": {
+          "symbols": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ticker"
+            }
+          }
+        },
+        "required": [
+          "symbols"
+        ],
+        "additionalProperties": false
+      },
+      "ApiErrorCode": {
+        "type": "string",
+        "enum": [
+          "BAD_REQUEST",
+          "NOT_FOUND",
+          "UNAVAILABLE",
+          "INTERNAL"
+        ]
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/ApiErrorCode"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "PriceTick": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "$ref": "#/components/schemas/Ticker"
+          },
+          "price": {
+            "$ref": "#/components/schemas/Price"
+          },
+          "timestamp": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "required": [
+          "symbol",
+          "price",
+          "timestamp"
+        ],
+        "additionalProperties": false
+      },
+      "ClientMessage": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "subscribe"
+              },
+              "symbols": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Ticker"
+                }
+              }
+            },
+            "required": [
+              "type",
+              "symbols"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "unsubscribe"
+              },
+              "symbols": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Ticker"
+                }
+              }
+            },
+            "required": [
+              "type",
+              "symbols"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "ServerMessage": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "welcome"
+              },
+              "serverTime": {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              "heartbeatIntervalMs": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "type",
+              "serverTime",
+              "heartbeatIntervalMs"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "prices"
+              },
+              "ticks": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PriceTick"
+                }
+              }
+            },
+            "required": [
+              "type",
+              "ticks"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "subscribed"
+              },
+              "symbols": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Ticker"
+                }
+              }
+            },
+            "required": [
+              "type",
+              "symbols"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "heartbeat"
+              },
+              "serverTime": {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            },
+            "required": [
+              "type",
+              "serverTime"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "error"
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "BAD_MESSAGE",
+                  "UNKNOWN_SYMBOL"
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  }
+}

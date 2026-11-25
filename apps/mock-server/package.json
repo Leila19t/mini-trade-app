@@ -6,7 +6,8 @@
     "dev": "tsx watch src/index.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "openapi": "tsx src/openapi/write.ts"
   },
   "dependencies": {
     "@mini-trade/contracts": "workspace:*",

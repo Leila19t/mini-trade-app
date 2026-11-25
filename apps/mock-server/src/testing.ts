@@ -19,7 +19,10 @@ export async function startTestServer(overrides: Partial<ServerConfig> = {}): Pr
     heartbeatIntervalMs: 60_000,
     ...overrides,
   });
-  const port = await server.listen(0);
+  // Bind to the exact address the tests connect to. Listening on all interfaces
+  // lets macOS hand out a port that another program holds on 127.0.0.1, and then
+  // requests reach that program instead of this server.
+  const port = await server.listen(0, "127.0.0.1");
   return {
     server,
     baseUrl: `http://127.0.0.1:${port}`,
