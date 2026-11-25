@@ -68,3 +68,14 @@ How I used AI on this project: what I asked for, what it got right, and where I 
 - Claude built the price engine in `apps/mock-server/src/engine` with 29 tests, verified (typecheck + tests) before writing to the repo.
 - Design choice it raised for review: the mock market trades 24/7, so there is no exchange "previous close" or "open". It renamed the contract fields to say what they are (`price24hAgo`, `high24h`, `low24h`, `volume24h`) and dropped `open`, rather than keep names that would mislead in a fintech codebase.
 - Finding: TypeScript 6+ no longer loads `@types/node` automatically, so `process` was unknown in the server. Fixed with `"types": ["node"]` in the server tsconfig and noted in CLAUDE.md.
+
+### 2026-11-25: mock server (REST + WebSocket)
+
+- Claude wrapped the price engine in a real server: REST on plain `node:http` with a small router (no Express, so no new dependency) and live prices over `ws`. Built and tested in its own sandbox first, then written to the repo. 83 tests, all on a real server on a random port.
+- Choices it raised for review:
+  - **Routes come from `endpoints` in contracts**, and a new `EndpointResponse<K>` type makes each handler return exactly its response schema. The server can't drift from the client.
+  - **Chaos fails a request before the handler runs**, so a failed watchlist PUT/DELETE really didn't happen. That makes optimistic updates with rollback honest.
+  - **Two kinds of socket drop:** an abrupt close, and a silent stall where the socket stays open but nothing arrives. Only a heartbeat timeout catches the second, so the client's heartbeat logic actually gets exercised.
+  - **Snapshot on subscribe:** after (re)subscribing, the client gets current prices at once instead of waiting for each stock's next move.
+- Check on the tests: Claude broke the code on purpose (sent every tick to every socket; failed after the watchlist change instead of before) to confirm the tests catch it. 4 tests failed as expected, then passed again 5 runs in a row once the code was restored.
+

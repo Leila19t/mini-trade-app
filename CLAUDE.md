@@ -65,8 +65,19 @@ Use pnpm only. Never run npm or yarn in this repo.
 - Engine code lives in `apps/mock-server/src/engine`; history is generated at several
   resolutions joined by Brownian bridges, so every chart range agrees at shared timestamps.
   Live ticks use `tickVolatilityScale` (default 15x) so prices visibly move in a demo.
-- Simulated latency, socket drops and ~2% request errors are on by default, and can
-  be switched off for tests.
+- Simulated latency (80–450 ms), socket drops and ~2% `503 UNAVAILABLE` errors are on by
+  default (`src/chaos.ts`). `CHAOS=off pnpm dev` turns them off; `ERROR_RATE=0.3` raises
+  errors to test the error UI. Tests always run with chaos off.
+- Socket drops come in two kinds: an abrupt close, and a *silent* stall (socket stays
+  open, nothing arrives) that only the client's heartbeat timeout can detect.
+- One HTTP server serves REST (`src/http`, routes registered from `endpoints`) and the
+  WebSocket (`src/ws`, upgrade on `WS_PATH`), so dev and production are same-origin.
+  Handlers are typed with `EndpointResponse<K>` and can't return the wrong shape.
+- On `subscribe` the server sends a snapshot of the newly added symbols' prices, so a
+  reconnecting client is current immediately.
+- The watchlist is in memory, per user id; every request is the demo user until sign-in exists.
+- Server tests start a real server on port 0 (`src/testing.ts`) and parse every
+  response and socket message with the contracts.
 
 ## Conventions
 

@@ -97,6 +97,12 @@ export class PriceEngine {
     return ticks;
   }
 
+  /** Current price as a tick, e.g. to send a snapshot right after someone subscribes. */
+  quote(symbol: string): PriceTick | undefined {
+    const state = this.stocks.get(symbol);
+    return state && { symbol: state.def.symbol, price: round2(state.price), timestamp: state.updatedAt };
+  }
+
   listSummaries(): StockSummary[] {
     return [...this.stocks.values()].map((state) => this.summary(state));
   }

@@ -66,3 +66,6 @@ export const endpoints = {
 } as const satisfies Record<string, Endpoint>;
 
 export type EndpointName = keyof typeof endpoints;
+
+/** The parsed body of an endpoint's successful response, e.g. `EndpointResponse<"getStock">`. */
+export type EndpointResponse<K extends EndpointName> = z.infer<(typeof endpoints)[K]["response"]>;

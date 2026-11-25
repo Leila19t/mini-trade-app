@@ -34,6 +34,13 @@ describe("PriceEngine", () => {
     expect(a.run(30 * SECOND)).toEqual(b.run(30 * SECOND));
   });
 
+  it("quotes the current price as a tick", () => {
+    const { engine, run } = setup({ tickProbability: 1 });
+    const last = run(5 * SECOND).filter((t) => t.symbol === "AAPL").at(-1);
+    expect(engine.quote("AAPL")).toEqual(last);
+    expect(engine.quote("ZZZZ")).toBeUndefined();
+  });
+
   it("produces different markets for different seeds", () => {
     const a = setup({ seed: 1 }).engine.getHistory("AAPL", "1Y");
     const b = setup({ seed: 2 }).engine.getHistory("AAPL", "1Y");

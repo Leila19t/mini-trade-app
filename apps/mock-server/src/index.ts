@@ -1,12 +1,20 @@
-import { PriceEngine } from "./engine";
+import { API_PREFIX, WS_PATH } from "@mini-trade/contracts";
+import { configFromEnv } from "./config";
+import { createMockServer } from "./server";
 
-// Temporary entry point until the HTTP + WebSocket server exists:
-// starts the engine and logs a few live ticks so `pnpm dev` shows it working.
-const engine = new PriceEngine({ seed: Number(process.env.SEED ?? 42) });
-console.log(`price engine ready: ${engine.symbols().length} stocks`);
+const config = configFromEnv();
+const server = createMockServer(config);
+const port = await server.listen(config.port);
 
-setInterval(() => {
-  const ticks = engine.tick();
-  const sample = ticks.slice(0, 3).map((t) => `${t.symbol} ${t.price.toFixed(2)}`).join("  ");
-  console.log(`${ticks.length} ticks  ${sample}`);
-}, 1000);
+const chaos = config.chaos
+  ? `latency ${config.chaos.latencyMs.min}–${config.chaos.latencyMs.max} ms, ${config.chaos.errorRate * 100}% errors, socket drops on`
+  : "off";
+console.log(`mock server on http://localhost:${port}`);
+console.log(`  REST ${API_PREFIX}  ·  WebSocket ${WS_PATH}  ·  ${server.engine.symbols().length} stocks  ·  seed ${config.seed}`);
+console.log(`  chaos: ${chaos}   (CHAOS=off to disable)`);
+
+const shutdown = () => {
+  server.close().finally(() => process.exit(0));
+};
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
