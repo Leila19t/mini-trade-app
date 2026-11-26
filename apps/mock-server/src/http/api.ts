@@ -6,7 +6,7 @@ import type { WatchlistStore } from "../watchlist-store";
 import { HttpError, sendError, sendJson } from "./respond";
 import { Router, type Params } from "./router";
 
-/** Until sign-in exists, every request belongs to this user. */
+/** The app has no sign-in, so every request belongs to this user. */
 export const DEMO_USER_ID = "demo";
 
 interface Context {

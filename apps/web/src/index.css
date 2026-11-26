@@ -45,7 +45,37 @@
   --font-sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
   /* Page column: Figma frames are 1440 wide with 160px side padding → 1120px of
      content, plus a 24px gutter (px-6) each side. Use with max-w-page. */
-  --container-page: 1440px;
+  --container-page: 1168px;
+
+  /* Motion, from the Figma "Motion & interaction" notes. Every animated element
+     also gets motion-reduce:animate-none (or is hidden) at its call site. */
+  --animate-flash: flash 600ms ease-out forwards; /* price tick: row tint fades out */
+  --animate-pop: pop 300ms cubic-bezier(0.34, 1.56, 0.64, 1); /* star toggle: spring pop */
+  --animate-toast-in: toast-in 200ms ease-out;
+  --animate-progress: progress 1.2s ease-in-out infinite; /* chart: thin loading bar */
+  --animate-fade-in: fade-in 150ms ease-out;
+
+  @keyframes flash {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+  @keyframes pop {
+    0% { scale: 1; }
+    45% { scale: 1.25; }
+    100% { scale: 1; }
+  }
+  @keyframes toast-in {
+    from { opacity: 0; translate: 0 8px; }
+    to { opacity: 1; translate: 0 0; }
+  }
+  @keyframes progress {
+    from { translate: -100% 0; }
+    to { translate: 250% 0; }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; scale: 0.96; }
+    to { opacity: 1; scale: 1; }
+  }
 }
 
 @layer base {

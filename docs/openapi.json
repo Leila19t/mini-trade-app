@@ -18,7 +18,7 @@
     },
     {
       "name": "Watchlist",
-      "description": "The user's starred stocks. One demo user until sign-in exists."
+      "description": "The user's starred stocks. One demo user (the app has no sign-in)."
     }
   ],
   "paths": {

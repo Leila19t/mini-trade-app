@@ -1,19 +1,24 @@
 import moon from "../assets/icons/moon.svg";
+import sun from "../assets/icons/sun.svg";
+import type { Theme } from "../helpers/types";
 
 interface ThemeToggleProps {
-  onToggle?: () => void;
+  theme: Theme;
+  onToggle: () => void;
 }
 
-/** Light theme shows a moon (switch to dark). Wiring and the dark-mode sun icon come later. */
-export function ThemeToggle({ onToggle }: ThemeToggleProps) {
+/** Light shows a moon (switch to dark); dark shows a sun (switch to light), as in Figma. */
+export function ThemeToggle({ theme, onToggle }: ThemeToggleProps) {
+  const next = theme === "dark" ? "light" : "dark";
+
   return (
     <button
       type="button"
       onClick={onToggle}
-      aria-label="Switch to dark theme"
+      aria-label={`Switch to ${next} theme`}
       className="inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-border-strong bg-bg-surface transition-colors duration-120 hover:bg-bg-subtle"
     >
-      <img src={moon} alt="" width={20} height={20} />
+      <img src={theme === "dark" ? sun : moon} alt="" width={20} height={20} />
     </button>
   );
 }

@@ -25,7 +25,7 @@ export const DEFAULT_CHAOS: ChaosOptions = {
 export const DEFAULT_CONFIG: ServerConfig = {
   port: 4000,
   seed: 42,
-  flushIntervalMs: 500,
+  flushIntervalMs: 2000,
   heartbeatIntervalMs: 5_000,
   initialWatchlist: ["AAPL", "NVDA", "TSLA"],
   chaos: DEFAULT_CHAOS,

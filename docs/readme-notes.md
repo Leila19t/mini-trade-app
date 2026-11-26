@@ -46,6 +46,12 @@ Points to fold into the final README. Delete this file before submitting.
 - Simulated latency, random socket drops and occasional request errors, to exercise the loading, reconnect and rollback states.
 - Real tickers, simulated prices, labelled "Simulated data" in the UI.
 
+**Client data layer**
+- Redux Toolkit for live prices and socket status; TanStack Query for everything fetched over HTTP. Live prices never go into the Query cache, so a tick re-renders one row, not the list.
+- One `request(name, args)` helper calls endpoints straight from the contracts and validates every response; off-contract data becomes an error, never UI state. Only 503s and network failures are retried.
+- The socket client is plain TypeScript (`data/PriceSocket.ts`): backoff with jitter, a heartbeat timeout (2.5 intervals) that catches silent stalls, and ref-counted, batched subscriptions that are restored after every reconnect.
+- Watchlist star/unstar is optimistic with rollback; after rapid toggles the list resyncs once the last one settles, so an early response can't undo a later click.
+
 **UX**
 - Optimistic star/unstar, with rollback and a toast on failure; Undo toast instead of a confirm dialog.
 - Socket drops: prices stay visible but dimmed, with a banner showing staleness and a reconnect countdown.
@@ -53,17 +59,25 @@ Points to fold into the final README. Delete this file before submitting.
 - Chart range is in the URL (`?range=1M`): shareable, survives refresh. Ranges are cached.
 - Skeleton loading in the real layout; errors are contained to the part of the page that failed.
 
+- Search, tab, sort and chart range all live in the URL (`?q=&tab=&sort=&range=`): shareable, refresh-safe, back-button friendly. Typing in the header search from a detail page jumps to the list.
+- Live sorting without re-rendering the list on every tick: the selector returns only the *order* of symbols (compared shallowly), so the list re-renders when rows swap places; each row still re-renders only for its own price.
+- Stats are rolling 24h figures (24h ago / high / low / volume) instead of the Figma "Open / Prev. close": the mock trades 24/7, so there's no session open or close.
+- The chart is a hand-written SVG (no chart library): line, area, live dot, crosshair + tooltip, arrow keys for keyboard users, drag to scrub on touch. It always ends at the live price.
+- After 4 failed reconnects the badge says "Offline" and the banner copy changes; "Retry now" skips the backoff wait.
+- Not yet built from the motion notes: digit roll on price change, sliding tab underline, row collapse on unstar, chart morph between ranges (the chart dims under a progress bar instead).
+
 **Design**
 - Sarwa-inspired palette (deep green #07351A, off-white, accent yellow for stars), no gradients. Brand green is for brand/actions; separate brighter up/down colours for price moves.
 - Colours are Light/Dark design tokens in Figma that map 1:1 to CSS variables; dark mode uses a lighter green because #07351A disappears on dark backgrounds.
 - Motion: 120–300 ms, springs for direct manipulation, View Transitions for the theme switch, everything falls back to fades with prefers-reduced-motion.
+- Theme: follows the OS until the user toggles, then remembers the choice (localStorage, synced across tabs). A tiny inline script in `index.html` sets `data-theme` before first paint, so dark mode never flashes light. `useTheme()` is a small external store (`useSyncExternalStore`), so no context provider is needed.
 
 **Scope and stretch goals** (only after the core brief works end to end)
 - Light/dark theme (system default + toggle).
-- Google sign-in with Better Auth; prices are public, sign-in only for the watchlist. Local dev falls back to a demo user when no Google keys are set.
+- No sign-in (Figma: "everything works the moment the app opens"). The watchlist and alerts belong to one demo user on the mock server, so they survive a reload.
 - Real database (Postgres via Drizzle; PGlite locally so `pnpm dev` needs no setup).
 - Price alerts as % move from yesterday's close (separate up/down limits), checked on the server and pushed over the socket; occasional "news shock" jumps in the mock so alerts actually fire.
-- Hosting on Render: one service (Node server also serves the built web app) + Render Postgres; same origin keeps cookies and WebSockets simple.
+- Hosting on Render: one service (Node server also serves the built web app) + Render Postgres; same origin keeps WebSockets simple.
 
 ## Links to add
 - API docs: `docs/openapi.json`, or `/docs` on the running mock server (Swagger UI, try requests live).

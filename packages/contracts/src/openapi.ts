@@ -137,7 +137,7 @@ export function buildOpenApiDocument() {
     servers: [{ url: "http://localhost:4000", description: "Local mock server (pnpm dev)" }],
     tags: [
       { name: "Stocks", description: "Stock list, detail and chart history. Public." },
-      { name: "Watchlist", description: "The user's starred stocks. One demo user until sign-in exists." },
+      { name: "Watchlist", description: "The user's starred stocks. One demo user (the app has no sign-in)." },
     ],
     paths,
     components: { schemas: cleaned },

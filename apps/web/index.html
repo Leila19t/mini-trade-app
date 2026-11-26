@@ -5,6 +5,20 @@
     <link rel="icon" type="image/svg+xml" href="/src/assets/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mini Trade</title>
+    <!-- Apply the theme before first paint (no light flash in dark mode).
+         Mirrors useTheme.ts; the key is THEME_STORAGE_KEY in helpers/constants.ts. -->
+    <script>
+      (function () {
+        var preference = "system";
+        try {
+          preference = localStorage.getItem("mini-trade:theme") || "system";
+        } catch (e) {}
+        var dark =
+          preference === "dark" ||
+          (preference !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

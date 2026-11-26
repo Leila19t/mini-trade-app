@@ -59,9 +59,10 @@ Use pnpm only. Never run npm or yarn in this repo.
 ```
 screens/       one per route: MarketsScreen (home), StockDetailScreen. Lay out views; no fetching logic
 views/         large sections built from components (e.g. the watchlist, the stock table, the chart panel)
-components/    small reusable pieces, grouped in folders: auth/, navigation/, more as needed
+components/    small reusable pieces, grouped in folders: navigation/, stocks/, chart/, more as needed
 helpers/       constants.ts, utils.ts (pure, framework-free), types.ts (UI-only types)
 hooks/         custom hooks (data, socket, media queries...)
+data/          non-React data layer: http.ts (request), PriceSocket.ts, Redux store + slices, queryClient
 assets/        images, icons, fonts
 ```
 
@@ -115,7 +116,7 @@ Also at the root of `src`: `router.tsx` (every route), `App.tsx` (root layout: h
   Handlers are typed with `EndpointResponse<K>` and can't return the wrong shape.
 - On `subscribe` the server sends a snapshot of the newly added symbols' prices, so a
   reconnecting client is current immediately.
-- The watchlist is in memory, per user id; every request is the demo user until sign-in exists.
+- The watchlist is in memory. There is no sign-in (per Figma), so every request is the one demo user.
 - Server tests start a real server on port 0 (`src/testing.ts`) and parse every
   response and socket message with the contracts.
 

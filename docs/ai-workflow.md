@@ -99,3 +99,14 @@ How I used AI on this project: what I asked for, what it got right, and where I 
 
 - I asked to move all styling to Tailwind (v4.3, latest). Claude kept the Figma tokens in `tokens.css` and mapped them into Tailwind's theme with the Figma group in the name (`bg-bg-surface`, `text-text-muted`), and switched off Tailwind's default palette so only design-system colours can be used.
 - Check: screenshots of the header before (CSS Modules) and after (Tailwind) at 1440, 800 and 390px compared pixel by pixel. The first pass differed by about 1,000 pixels: Tailwind's reset sets a 1.5 line height that shifted the pills by a fraction of a pixel. After making their wrappers flex, the two versions were pixel-identical at all three widths.
+
+### 2026-11-25: markets and stock detail screens from Figma
+
+- I asked Claude to implement the Figma screens and wire them to the data layer. Claude asked about scope first: sign-in, the account drawer and price alerts need contract and server work, so this pass covers the markets list and stock detail with all their states, phones and dark mode. Sign-in and alerts come later.
+- Read every frame and the yellow UX-note cards through the Figma MCP. Icons downloaded as-is (stars, chevrons, alert, the sun for the dark-mode toggle); sparklines and the chart are drawn from data, not exported.
+- Corrections it caught itself during screenshot checks:
+  - The chart rendered empty: the width hook waited for a ResizeObserver callback that hadn't fired yet. Rewritten with `useSyncExternalStore`, which re-reads the width right after subscribing.
+  - "Name (A–Z)" sorted by company name (Alphabet before Apple); Figma's list is in symbol order. Now sorts by symbol.
+  - `--container-page` was 1440px, so content ran edge to edge; CLAUDE.md and Figma say 1120px + 24px gutters. Now 1168px.
+- Headless Chrome won't shrink a window below ~500px, so 390px screenshots looked broken. Claude switched to device emulation over the DevTools protocol for real phone widths.
+- Checked by screenshot at 1440 and 390px, light and dark: list, watchlist, empty search, loading, chart tooltip, Undo toast, and the reconnecting banner (by freezing the mock server with SIGSTOP to cause a silent stall).

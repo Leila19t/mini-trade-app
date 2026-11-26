@@ -1,9 +1,8 @@
 import type { Ticker } from "@mini-trade/contracts";
 
 /**
- * In-memory watchlists, keyed by user id. Until sign-in exists every request
- * belongs to one demo user; the store is already per-user so auth can slot in
- * without changing it. Swapping this for a database later keeps the same methods.
+ * In-memory watchlists, keyed by user id. The app has no sign-in, so every
+ * request belongs to one demo user. Swapping this for a database later keeps the same methods.
  */
 export class WatchlistStore {
   private readonly lists = new Map<string, Ticker[]>();
