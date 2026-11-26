@@ -80,6 +80,7 @@ Points to fold into the final README. Delete this file before submitting.
 - No sign-in (Figma: "everything works the moment the app opens"). The watchlist and alerts belong to one demo user on the mock server, so they survive a reload.
 - Real database (Postgres via Drizzle; PGlite locally so `pnpm dev` needs no setup).
 - Price alerts as % move from yesterday's close (separate up/down limits), checked on the server and pushed over the socket; occasional "news shock" jumps in the mock so alerts actually fire.
+- CI on GitHub Actions (typecheck, lint, 168 tests, build); Render deploys a commit only once CI is green.
 - Hosting on Render (`render.yaml`): one web service; the Node server also serves the built web app, so the app, API and WebSocket share one origin (no CORS, no separate socket URL). Smallest paid instance, so it's always on (no wake-up delay for reviewers); the in-memory watchlist still resets on each deploy or restart. Chaos (latency, 2% errors, socket drops) stays on in production on purpose; `CHAOS=off` turns it off.
 
 ## Links to add

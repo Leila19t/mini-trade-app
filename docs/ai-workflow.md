@@ -2,13 +2,11 @@
 
 How I used AI on this project: what I asked for, what it got right, and where I had to correct it.
 
-> Draft log. Edit into final form before submitting.
-
 ## Setup
 
 - **Claude (claude.ai app)** as a planning and pairing partner, with access to this repo folder on my machine and to Figma through the Figma connector.
 - **Figma** for the architecture diagram and the wireframes, which Claude drew from our discussion and I reviewed.
-- `CLAUDE.md` at the repo root (to add) gives every new AI session the same context: folder map, commands, conventions.
+- `CLAUDE.md` at the repo root gives every new AI session the same context: folder map, commands, conventions.
 
 ## How I worked
 
@@ -39,11 +37,6 @@ How I used AI on this project: what I asked for, what it got right, and where I 
 | (none) | `pnpm install` failed with `ERR_PNPM_IGNORED_BUILDS` for `esbuild` (pulled in by `tsx`) | pnpm blocks install scripts by default as a supply-chain protection. Approved only `esbuild`, with `pnpm approve-builds` |
 | (none) | `pnpm typecheck` printed the `tsc` help page and failed in `packages/contracts` | That package had no `tsconfig.json`. Every package needs its own, extending `tsconfig.base.json` |
 | (open) | The root has TypeScript 7; the Vite template added TypeScript 6 to `apps/web` | Decide on one TypeScript version for the whole repo |
-
-## Takeaways
-
-- The AI is fast at diagnosis when it can read the actual files, rather than guessing from an error message.
-- It can be out of date on tooling (the Corepack change), so I check version-sensitive advice.
 
 ### 2026-11-24: CLAUDE.md and contracts
 
@@ -125,3 +118,8 @@ How I used AI on this project: what I asked for, what it got right, and where I 
 - The web app had no test runner. Claude asked before adding dependencies; I chose helpers + components: Vitest, jsdom and React Testing Library (dev dependencies of `apps/web`).
 - 46 tests: the live-candle and time helpers, the OHLCV legend, the Simple/Pro toggle, the chart wiring (Lightweight Charts mocked: full redraw vs. last-candle update, countdown, crosshair, keyboard), the Pro panel (legend, hover, interval in the URL, loading/error/placeholder states) and the mode switch (URL vs. remembered mode, P shortcut, phones always Simple, resizing).
 - Correction it caught itself: a time-formatting test only passed in some time zones (it failed when run as New York). Rewritten to build dates from local parts; checked in UTC, Dubai, New York and UTC+14.
+
+## Takeaways
+
+- The AI is fast at diagnosis when it can read the actual files, rather than guessing from an error message.
+- It can be out of date on tooling (the Corepack change), so I check version-sensitive advice.

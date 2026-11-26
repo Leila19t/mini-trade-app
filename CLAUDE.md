@@ -25,6 +25,7 @@ pnpm install          # install everything
 pnpm dev              # web + mock server together
 pnpm typecheck        # typecheck every package
 pnpm test             # run every package's tests
+pnpm lint             # lint every package that has a lint script
 pnpm build            # build the web app (apps/web/dist)
 pnpm start            # production: the mock server also serves apps/web/dist (same origin)
 pnpm --filter @mini-trade/web <script>      # one package
@@ -121,7 +122,10 @@ Also at the root of `src`: `router.tsx` (every route), `App.tsx` (root layout: h
   WebSocket (`src/ws`, upgrade on `WS_PATH`), so dev and production are same-origin.
   When `apps/web/dist` exists it also serves the web app (`src/http/static.ts`, SPA fallback
   to index.html). `GET /health` skips chaos for the host's health check.
+- CI: `.github/workflows/ci.yml` runs install, typecheck, lint, test and build on every push
+  to main and every PR. Keep it green.
 - Deploy: `render.yaml` (Render Blueprint, one web service, Node 24, pnpm via Corepack).
+  Render deploys a commit only after CI passes (`autoDeployTrigger: checksPass`).
   Handlers are typed with `EndpointResponse<K>` and can't return the wrong shape.
 - On `subscribe` the server sends a snapshot of the newly added symbols' prices, so a
   reconnecting client is current immediately.

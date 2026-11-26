@@ -11,7 +11,7 @@ services:
     buildCommand: corepack pnpm install --frozen-lockfile && corepack pnpm build
     startCommand: corepack pnpm start
     healthCheckPath: /health
-    autoDeployTrigger: commit
+    autoDeployTrigger: checksPass # deploy only after GitHub Actions CI passes (.github/workflows/ci.yml)
     envVars:
       - key: NODE_VERSION
         value: "24" # Corepack ships with Node up to 24
