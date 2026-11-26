@@ -31,8 +31,11 @@ export const CHART_MODE_STORAGE_KEY = "mini-trade:chart-mode";
 /** The Pro chart needs room: phones always get the Simple chart. Matches Tailwind's `sm`. */
 export const PRO_CHART_MEDIA_QUERY = "(min-width: 640px)";
 
-/** Candles are refetched this often; live ticks move the last one in between. */
-export const CANDLES_REFETCH_MS = 60_000;
+/**
+ * Candles are refetched `lagMs` after a candle closes (so the server has the next one),
+ * and never more often than `minMs` (e.g. while the server's clock is behind ours).
+ */
+export const CANDLES_REFETCH = { lagMs: 1_000, minMs: 5_000 } as const;
 
 /** Pro chart zoom: candles shown at first (and after Reset), the closest zoom, and each +/− step. */
 export const CANDLE_ZOOM = { initial: 64, min: 12, step: 1.5 } as const;

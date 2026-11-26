@@ -49,8 +49,10 @@ Points to fold into the final README. Delete this file before submitting.
 **Client data layer**
 - Redux Toolkit for live prices and socket status; TanStack Query for everything fetched over HTTP. Live prices never go into the Query cache, so a tick re-renders one row, not the list.
 - One `request(name, args)` helper calls endpoints straight from the contracts and validates every response; off-contract data becomes an error, never UI state. Only 503s and network failures are retried.
-- The socket client is plain TypeScript (`data/PriceSocket.ts`): backoff with jitter, a heartbeat timeout (2.5 intervals) that catches silent stalls, and ref-counted, batched subscriptions that are restored after every reconnect.
-- Watchlist star/unstar is optimistic with rollback; after rapid toggles the list resyncs once the last one settles, so an early response can't undo a later click.
+- The socket client is plain TypeScript (`data/PriceSocket.ts`): backoff with jitter, a heartbeat timeout (2.5 intervals) that catches silent stalls, and ref-counted, batched subscriptions that are restored after every reconnect. A symbol nobody watches stays subscribed for 10 s, so switching tabs or going list → detail → back sends no socket messages; symbols that leave together unsubscribe in one message.
+- Watchlist star/unstar is optimistic with rollback. Toggles run one at a time in order (a TanStack mutation `scope`), and since PUT/DELETE return the whole list, the last response goes straight into the cache: one request per click, no refetch. Only a failure triggers a refetch.
+- Candles are refetched just after the live candle closes (and are fresh until then), not on a fixed timer: every minute on 1m, once a day on 1D. Live ticks move the last candle in between.
+- Request audit (headless browser, chaos off): one request per user action, cached ranges/intervals and back-navigation make none.
 
 **UX**
 - Optimistic star/unstar, with rollback and a toast on failure; Undo toast instead of a confirm dialog.
