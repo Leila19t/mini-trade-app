@@ -11,7 +11,7 @@ export function Header() {
   const { status } = useConnectionStatus();
 
   return (
-    <header className="h-16 border-b border-border-default bg-bg-surface">
+    <header className="h-16 border-b border-border-default bg-bg-surface max-sm:sticky max-sm:top-0 max-sm:z-30">
       <div className="mx-auto flex h-full max-w-page items-center gap-4 px-6 max-sm:gap-3 max-sm:px-4">
         <Brand />
         {/* Two flexible spacers keep the search centred between the brand and the actions. */}
