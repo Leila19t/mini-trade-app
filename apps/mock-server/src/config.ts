@@ -19,7 +19,7 @@ export interface ServerConfig {
 
 export const DEFAULT_CHAOS: ChaosOptions = {
   latencyMs: { min: 80, max: 450 },
-  errorRate: 0.02,
+  errorRate: 0.05,
   socketDropAfterMs: { min: 45_000, max: 120_000 },
   silentDropShare: 0.3,
 };
