@@ -34,6 +34,9 @@ export const PRO_CHART_MEDIA_QUERY = "(min-width: 640px)";
 /** Candles are refetched this often; live ticks move the last one in between. */
 export const CANDLES_REFETCH_MS = 60_000;
 
+/** Pro chart zoom: candles shown at first (and after Reset), the closest zoom, and each +/− step. */
+export const CANDLE_ZOOM = { initial: 64, min: 12, step: 1.5 } as const;
+
 /** localStorage key for the theme preference. index.html reads it too, before first paint. */
 export const THEME_STORAGE_KEY = "mini-trade:theme";
 

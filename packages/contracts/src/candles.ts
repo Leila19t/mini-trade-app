@@ -20,8 +20,11 @@ export const CANDLE_INTERVAL_MS: Record<CandleInterval, number> = {
   "1D": 1440 * MINUTE_MS,
 };
 
-/** How many candles the endpoint returns, the live one included. */
-export const CANDLE_COUNT = 64;
+/**
+ * How many candles the endpoint returns, the live one included. The Pro chart starts
+ * on the latest few dozen; the rest is history to drag or zoom out to.
+ */
+export const CANDLE_COUNT = 300;
 
 /** One candle: prices over `[timestamp, timestamp + interval)`. */
 export const Candle = z.object({

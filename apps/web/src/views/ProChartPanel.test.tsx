@@ -1,5 +1,5 @@
 import type { Candle, CandleInterval, PriceTick } from "@mini-trade/contracts";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -115,5 +115,51 @@ describe("ProChartPanel", () => {
     expect(screen.getByRole("progressbar", { name: "Loading chart" })).toBeInTheDocument();
     // Until the 1H candles arrive, the legend still describes the 15m ones on screen.
     expect(screen.getByText("NVDA · 15m")).toBeInTheDocument();
+  });
+
+  describe("fullscreen", () => {
+    /** jsdom has no Fullscreen API: a minimal fake that fires `fullscreenchange` like a browser. */
+    function installFullscreen() {
+      let current: Element | null = null;
+      const { requestFullscreen } = Element.prototype;
+      const change = (element: Element | null) => {
+        current = element;
+        document.dispatchEvent(new Event("fullscreenchange"));
+      };
+      Object.defineProperty(document, "fullscreenEnabled", { configurable: true, value: true });
+      Object.defineProperty(document, "fullscreenElement", { configurable: true, get: () => current });
+      document.exitFullscreen = vi.fn(async () => change(null));
+      Element.prototype.requestFullscreen = vi.fn(async function (this: Element) {
+        change(this);
+      });
+      return () => {
+        Reflect.deleteProperty(document, "fullscreenEnabled");
+        Reflect.deleteProperty(document, "fullscreenElement");
+        Element.prototype.requestFullscreen = requestFullscreen;
+      };
+    }
+
+    it("puts the chart card fullscreen with the button or F, and back", async () => {
+      const uninstall = installFullscreen();
+      try {
+        renderPanel();
+        const card = screen.getByRole("region", { name: "Price chart" });
+
+        await userEvent.click(screen.getByRole("button", { name: "Fullscreen (F)" }));
+        expect(document.fullscreenElement).toBe(card);
+        expect(screen.getByRole("button", { name: "Exit fullscreen (F)" })).toBeInTheDocument();
+
+        await act(() => userEvent.keyboard("f"));
+        expect(document.fullscreenElement).toBeNull();
+        expect(screen.getByRole("button", { name: "Fullscreen (F)" })).toBeInTheDocument();
+      } finally {
+        uninstall();
+      }
+    });
+
+    it("hides the button where fullscreen isn't available", () => {
+      renderPanel();
+      expect(screen.queryByRole("button", { name: /Fullscreen/ })).not.toBeInTheDocument();
+    });
   });
 });

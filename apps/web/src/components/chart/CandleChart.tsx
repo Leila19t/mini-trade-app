@@ -16,10 +16,12 @@ import {
 } from "lightweight-charts";
 import { useEffect, useEffectEvent, useRef, type KeyboardEvent } from "react";
 import { candleEnd, formatCandleTime, formatCountdown, toChartTime, withAlpha } from "../../helpers/candles";
+import { CANDLE_ZOOM } from "../../helpers/constants";
 import { formatPrice } from "../../helpers/utils";
 import { useNow } from "../../hooks/useNow";
 import type { Theme } from "../../helpers/types";
 import { useTheme } from "../../hooks/useTheme";
+import { ZoomControls } from "./ZoomControls";
 
 /** Volume bars use the candle colours at this opacity (Figma: 35%). */
 const VOLUME_ALPHA = 0.35;
@@ -88,6 +90,41 @@ function formatTickMark(time: Time, type: TickMarkType): string {
   return axisFormats.time.format(ms);
 }
 
+/** Shows the latest `count` candles, flush with the live one. */
+function showLatest(chart: IChartApi, total: number, count: number = CANDLE_ZOOM.initial) {
+  chart.timeScale().setVisibleLogicalRange({ from: total - count - 0.5, to: total - 0.5 });
+}
+
+/**
+ * Zooms by `factor` (> 1 zooms in), keeping the right edge where it is, like
+ * TradingView's buttons. Never closer than `CANDLE_ZOOM.min` candles or wider than all of them.
+ */
+function zoomBy(chart: IChartApi, total: number, factor: number) {
+  const timeScale = chart.timeScale();
+  const range = timeScale.getVisibleLogicalRange();
+  if (!range) return;
+  const width = Math.min(Math.max((range.to - range.from) / factor, CANDLE_ZOOM.min), total);
+  timeScale.setVisibleLogicalRange({ from: range.to - width, to: range.to });
+}
+
+/** What's on the chart now. `interval` is the one the view was last reset for. */
+interface DrawnState {
+  candles: readonly Candle[];
+  colors: ChartColors | null;
+  interval: CandleInterval | null;
+}
+const EMPTY_DRAWN: DrawnState = { candles: [], colors: null, interval: null };
+
+/** Scrolls just enough to show candle `index`, keeping the zoom. */
+function scrollIntoView(chart: IChartApi, index: number) {
+  const timeScale = chart.timeScale();
+  const range = timeScale.getVisibleLogicalRange();
+  if (!range || (index - 0.5 >= range.from && index + 0.5 <= range.to)) return;
+  const width = range.to - range.from;
+  const from = index - 0.5 < range.from ? index - 0.5 : index + 0.5 - width;
+  timeScale.setVisibleLogicalRange({ from, to: from + width });
+}
+
 interface ChartApi {
   chart: IChartApi;
   candles: ISeriesApi<"Candlestick">;
@@ -102,6 +139,8 @@ interface CandleChartProps {
   label: string;
   /** Index of the candle under the crosshair, or null when nothing is hovered. */
   onHoverChange: (index: number | null) => void;
+  /** Fill the parent's height (fullscreen) instead of the fixed card height. */
+  fill?: boolean;
 }
 
 /**
@@ -109,12 +148,16 @@ interface CandleChartProps {
  * Charts. The last candle is live: the dashed line and the axis tag mark the
  * live price, with a countdown until the candle closes. Hover shows the
  * crosshair; arrow keys step through candles for keyboard users.
+ *
+ * It opens on the latest `CANDLE_ZOOM.initial` candles. Drag (or swipe) to see
+ * older ones; the wheel, a pinch, the buttons or +/− zoom; 0 goes back to the
+ * latest. Live ticks and refetches keep whatever view the user picked.
  */
-export function CandleChart({ candles, interval, label, onHoverChange }: CandleChartProps) {
+export function CandleChart({ candles, interval, label, onHoverChange, fill = false }: CandleChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const api = useRef<ChartApi | null>(null);
   /** What's on the chart now, so a live tick only redraws the last candle. */
-  const drawn = useRef<{ candles: readonly Candle[]; colors: ChartColors | null }>({ candles: [], colors: null });
+  const drawn = useRef<DrawnState>(EMPTY_DRAWN);
   const indexByTime = useRef(new Map<number, number>());
   /** Candle selected with the keyboard. */
   const keyboardIndex = useRef<number | null>(null);
@@ -131,9 +174,14 @@ export function CandleChart({ candles, interval, label, onHoverChange }: CandleC
 
     const chart = createChart(container, {
       autoSize: true,
-      // A fixed window of recent candles: the wheel and drags keep scrolling the page.
-      handleScroll: false,
-      handleScale: false,
+      // Drag or swipe through history; the wheel and pinch zoom (so the page doesn't scroll over the chart).
+      handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+      handleScale: {
+        mouseWheel: true,
+        pinch: true,
+        axisPressedMouseMove: { time: true, price: false },
+        axisDoubleClickReset: { time: true, price: true },
+      },
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         fontSize: 11,
@@ -168,7 +216,7 @@ export function CandleChart({ candles, interval, label, onHoverChange }: CandleC
     });
 
     api.current = { chart, candles: candleSeries, volume: volumeSeries };
-    drawn.current = { candles: [], colors: null };
+    drawn.current = EMPTY_DRAWN;
     return () => {
       chart.remove();
       api.current = null;
@@ -200,6 +248,7 @@ export function CandleChart({ candles, interval, label, onHoverChange }: CandleC
   }, [interval]);
 
   // Data: a live tick only touches the last candle; anything else redraws everything.
+  // The view only resets for the first data and a new interval, so ticks and refetches keep the user's zoom.
   useEffect(() => {
     const current = api.current;
     if (!current) return;
@@ -209,6 +258,7 @@ export function CandleChart({ candles, interval, label, onHoverChange }: CandleC
     const last = candles.at(-1);
     const onlyLastChanged =
       before.colors === colors &&
+      before.interval === interval &&
       before.candles.length === candles.length &&
       candles.length > 1 &&
       before.candles[0] === candles[0] &&
@@ -220,10 +270,14 @@ export function CandleChart({ candles, interval, label, onHoverChange }: CandleC
     } else {
       current.candles.setData(candles.map(toBar));
       current.volume.setData(candles.map((candle) => toVolume(candle, colors)));
-      current.chart.timeScale().fitContent();
+      if (before.interval !== interval) showLatest(current.chart, candles.length);
     }
-    drawn.current = { candles, colors };
-  }, [candles, colors]);
+    drawn.current = { candles, colors, interval };
+  }, [candles, colors, interval]);
+
+  const zoomIn = () => api.current && zoomBy(api.current.chart, candles.length, CANDLE_ZOOM.step);
+  const zoomOut = () => api.current && zoomBy(api.current.chart, candles.length, 1 / CANDLE_ZOOM.step);
+  const resetView = () => api.current && showLatest(api.current.chart, candles.length);
 
   // Countdown to the live candle's close, next to the live price on the axis.
   const last = candles.at(-1);
@@ -236,11 +290,12 @@ export function CandleChart({ candles, interval, label, onHoverChange }: CandleC
     keyboardIndex.current = index;
     const current = api.current;
     const candle = index === null ? undefined : candles[index];
-    if (!current || !candle) {
+    if (!current || !candle || index === null) {
       current?.chart.clearCrosshairPosition();
       onHoverChange(null);
       return;
     }
+    scrollIntoView(current.chart, index);
     current.chart.setCrosshairPosition(candle.close, chartTime(candle.timestamp), current.candles);
     onHoverChange(index);
   };
@@ -255,7 +310,12 @@ export function CandleChart({ candles, interval, label, onHoverChange }: CandleC
       Home: 0,
       End: lastIndex,
     };
-    if (event.key in moves) {
+    const zooms: Record<string, () => void> = { "+": zoomIn, "=": zoomIn, "-": zoomOut, "_": zoomOut, "0": resetView };
+    const zoom = zooms[event.key];
+    if (zoom) {
+      event.preventDefault();
+      zoom();
+    } else if (event.key in moves) {
       event.preventDefault();
       showCandle(moves[event.key] ?? null);
     } else if (event.key === "Escape") {
@@ -264,14 +324,17 @@ export function CandleChart({ candles, interval, label, onHoverChange }: CandleC
   };
 
   return (
-    <div
-      ref={containerRef}
-      tabIndex={0}
-      role="group"
-      aria-label={`${label}. Use the arrow keys to read candles.`}
-      onKeyDown={onKeyDown}
-      onBlur={() => showCandle(null)}
-      className="relative h-75 w-full rounded-sm"
-    />
+    <div className={`relative w-full ${fill ? "h-full min-h-75" : "h-75"}`}>
+      <div
+        ref={containerRef}
+        tabIndex={0}
+        role="group"
+        aria-label={`${label}. Arrow keys read candles, plus and minus zoom, 0 resets the view.`}
+        onKeyDown={onKeyDown}
+        onBlur={() => showCandle(null)}
+        className="size-full cursor-crosshair rounded-sm"
+      />
+      <ZoomControls onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={resetView} />
+    </div>
   );
 }
