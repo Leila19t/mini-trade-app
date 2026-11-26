@@ -21,7 +21,10 @@ const fake = vi.hoisted(() => {
       addSeries: vi.fn(),
       priceScale: vi.fn(() => ({ applyOptions: vi.fn() })),
       timeScale: vi.fn(),
-      fitContent: vi.fn(),
+      /** The visible logical range (candle indexes) the component last set. */
+      visibleRange: null as null | { from: number; to: number },
+      getVisibleLogicalRange: vi.fn(),
+      setVisibleLogicalRange: vi.fn(),
       subscribeCrosshairMove: vi.fn(),
       setCrosshairPosition: vi.fn(),
       clearCrosshairPosition: vi.fn(),
@@ -58,7 +61,15 @@ beforeEach(() => {
   state.chart.addSeries.mockImplementation((definition: { type: string }) =>
     definition.type === "Candlestick" ? state.candles : state.volume,
   );
-  state.chart.timeScale.mockReturnValue({ fitContent: state.chart.fitContent });
+  state.chart.visibleRange = null;
+  state.chart.getVisibleLogicalRange.mockImplementation(() => state.chart.visibleRange);
+  state.chart.setVisibleLogicalRange.mockImplementation((range: { from: number; to: number }) => {
+    state.chart.visibleRange = range;
+  });
+  state.chart.timeScale.mockReturnValue({
+    getVisibleLogicalRange: state.chart.getVisibleLogicalRange,
+    setVisibleLogicalRange: state.chart.setVisibleLogicalRange,
+  });
   state.chart.subscribeCrosshairMove.mockImplementation((handler: (param: { time?: number }) => void) => {
     state.crosshairHandler = handler;
   });
@@ -83,7 +94,57 @@ describe("CandleChart", () => {
       "rgba(194, 51, 43, 0.35)",
       "rgba(14, 122, 63, 0.35)",
     ]);
-    expect(state.chart.fitContent).toHaveBeenCalled();
+  });
+
+  it("opens on the latest candles", () => {
+    renderChart(makeCandles(Array.from({ length: 100 }, (_, i) => 100 + i)));
+    expect(state.chart.visibleRange).toEqual({ from: 100 - 64 - 0.5, to: 99.5 });
+  });
+
+  it("keeps the user's view on live ticks and new candles, and resets it for a new interval", () => {
+    const { rerender, onHoverChange } = renderChart();
+    state.chart.visibleRange = { from: 0.5, to: 1.5 }; // the user dragged / zoomed
+    state.chart.setVisibleLogicalRange.mockClear();
+
+    const next = makeCandles([101, 99, 102, 104]).slice(1);
+    rerender(<CandleChart candles={next} interval="15m" label="x" onHoverChange={onHoverChange} />);
+    expect(state.chart.setVisibleLogicalRange).not.toHaveBeenCalled();
+
+    rerender(<CandleChart candles={next} interval="1H" label="x" onHoverChange={onHoverChange} />);
+    expect(state.chart.setVisibleLogicalRange).toHaveBeenCalledTimes(1);
+  });
+
+  it("zooms with the buttons and the keyboard, keeping the right edge", async () => {
+    const data = makeCandles(Array.from({ length: 200 }, (_, i) => 100 + i));
+    renderChart(data);
+    const width = () => (state.chart.visibleRange ? state.chart.visibleRange.to - state.chart.visibleRange.from : 0);
+
+    fireEvent.click(screen.getByRole("button", { name: /Zoom in/ }));
+    expect(width()).toBeCloseTo(64 / 1.5);
+    expect(state.chart.visibleRange?.to).toBe(199.5);
+
+    fireEvent.click(screen.getByRole("button", { name: /Zoom out/ }));
+    expect(width()).toBeCloseTo(64);
+
+    const chart = screen.getByRole("group", { name: /NVDA candles/ });
+    for (let i = 0; i < 10; i++) fireEvent.keyDown(chart, { key: "+" });
+    expect(width()).toBe(12); // never closer than the minimum
+    for (let i = 0; i < 20; i++) fireEvent.keyDown(chart, { key: "-" });
+    expect(width()).toBe(200); // never wider than every candle
+
+    fireEvent.keyDown(chart, { key: "0" });
+    expect(state.chart.visibleRange).toEqual({ from: 200 - 64 - 0.5, to: 199.5 });
+  });
+
+  it("scrolls a candle picked with the keyboard into view", () => {
+    renderChart(makeCandles(Array.from({ length: 100 }, (_, i) => 100 + i)));
+    fireEvent.keyDown(screen.getByRole("group", { name: /NVDA candles/ }), { key: "Home" });
+    expect(state.chart.visibleRange).toEqual({ from: -0.5, to: 63.5 });
+  });
+
+  it("uses a crosshair cursor", () => {
+    renderChart();
+    expect(screen.getByRole("group", { name: /NVDA candles/ })).toHaveClass("cursor-crosshair");
   });
 
   it("only updates the last candle on a live tick", () => {
@@ -122,7 +183,7 @@ describe("CandleChart", () => {
 
   it("steps through candles with the arrow keys, Home and End, and clears with Escape", () => {
     const { onHoverChange } = renderChart();
-    const chart = screen.getByRole("group", { name: /NVDA candles, 15m/ });
+    const chart = screen.getByRole("group", { name: /^NVDA candles, 15m/ });
 
     fireEvent.keyDown(chart, { key: "ArrowLeft" });
     expect(onHoverChange).toHaveBeenLastCalledWith(1);

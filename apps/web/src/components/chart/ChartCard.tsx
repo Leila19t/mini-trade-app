@@ -1,17 +1,25 @@
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 interface ChartCardProps {
   /** Shows the thin progress bar while a new range or interval loads. */
   loading: boolean;
+  /** Fills the screen edge to edge (the Pro chart's fullscreen mode). */
+  fullscreen?: boolean;
+  ref?: Ref<HTMLElement>;
   children: ReactNode;
 }
 
 /** The chart card on the detail page, shared by the Simple and Pro charts. A plain panel on phones. */
-export function ChartCard({ loading, children }: ChartCardProps) {
+export function ChartCard({ loading, fullscreen = false, ref, children }: ChartCardProps) {
   return (
     <section
+      ref={ref}
       aria-label="Price chart"
-      className="relative flex flex-col gap-4 overflow-hidden rounded-xl border border-border-default bg-bg-surface p-5 max-sm:gap-3.5 max-sm:overflow-visible max-sm:rounded-none max-sm:border-0 max-sm:p-0"
+      className={`relative flex flex-col gap-4 overflow-hidden bg-bg-surface ${
+        fullscreen
+          ? "h-full p-6"
+          : "rounded-xl border border-border-default p-5 max-sm:gap-3.5 max-sm:overflow-visible max-sm:rounded-none max-sm:border-0 max-sm:p-0"
+      }`}
     >
       {loading && (
         <div

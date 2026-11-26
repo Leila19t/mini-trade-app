@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { endpoints, type EndpointName } from "./api";
-import { Candle, CandleInterval, CandlesResponse } from "./candles";
+import { Candle, CANDLE_COUNT, CandleInterval, CandlesResponse } from "./candles";
 import { ApiError, ApiErrorCode } from "./errors";
 import { HistoryPoint, HistoryResponse, Range } from "./history";
 import { Price, Ticker, Timestamp } from "./primitives";
@@ -36,7 +36,7 @@ register(HistoryPoint, { id: "HistoryPoint" });
 register(HistoryResponse, { id: "HistoryResponse", description: "Price history for one stock and range, oldest point first. The last point is the live price." });
 register(CandleInterval, { id: "CandleInterval", description: "Candle size. Candles start on multiples of the interval since the Unix epoch (UTC)." });
 register(Candle, { id: "Candle", description: "Open, high, low and close over one interval, plus the shares traded. `timestamp` is the start of the candle." });
-register(CandlesResponse, { id: "CandlesResponse", description: "The latest 64 candles, oldest first. The last one is still open: its close is the live price." });
+register(CandlesResponse, { id: "CandlesResponse", description: `The latest ${CANDLE_COUNT} candles, oldest first. The last one is still open: its close is the live price.` });
 register(Watchlist, { id: "Watchlist", description: "The user's starred stocks, most recently added first." });
 register(ApiErrorCode, { id: "ApiErrorCode" });
 register(ApiError, { id: "ApiError", description: "Body of every non-2xx response." });
