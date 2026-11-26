@@ -14,7 +14,7 @@ import { buildCandles } from "./candles";
 import { generateHistory, LEVELS, type PricePoint } from "./history";
 import { createNormal, createRandom, hashString, type RandomSource } from "./random";
 import { RANGE_CONFIG } from "./ranges";
-import { DAY, HOUR, MINUTE, YEAR } from "./time";
+import { DAY, HOUR, MINUTE, WEEK, YEAR } from "./time";
 import { UNIVERSE, type StockDefinition } from "./universe";
 
 export interface PriceEngineOptions {
@@ -31,7 +31,15 @@ export interface PriceEngineOptions {
   tickVolatilityScale?: number;
   /** Chance that a given stock moves on a given tick, so not every row flashes at once. */
   tickProbability?: number;
+  /**
+   * How long live prices are kept at one sample per minute (default: a week).
+   * Older ones are thinned to one per hour, which is all the longer charts read.
+   */
+  liveRetentionMs?: number;
 }
+
+/** The longest chart (5Y). Hourly samples older than this are never read, so they're dropped. */
+const LONGEST_WINDOW = Math.max(...Object.values(RANGE_CONFIG).map((range) => range.window));
 
 interface StockState {
   def: StockDefinition;
@@ -39,8 +47,14 @@ interface StockState {
   seed: number;
   /** Generated past, keyed by interval (ms). Ends at the engine start time. */
   history: Map<number, PricePoint[]>;
-  /** Live prices since start, one sample per minute (the latest price in that minute). */
+  /** Live prices from the last `liveRetentionMs`, one sample per minute (the latest price in that minute). */
   live: PricePoint[];
+  /**
+   * Older live prices, one per hour: the last price in each hour of the grid
+   * that starts at `start`. That's exactly the sample every chart from 1W up
+   * reads, so thinning them changes no chart. Covers at most the longest range.
+   */
+  hourly: PricePoint[];
   price: number;
   updatedAt: number;
   random: RandomSource;
@@ -59,6 +73,7 @@ export class PriceEngine {
   private readonly now: () => number;
   private readonly tickVolatilityScale: number;
   private readonly tickProbability: number;
+  private readonly liveRetentionMs: number;
   private readonly stocks = new Map<Ticker, StockState>();
 
   constructor(options: PriceEngineOptions = {}) {
@@ -66,6 +81,7 @@ export class PriceEngine {
     this.now = options.now ?? Date.now;
     this.tickVolatilityScale = options.tickVolatilityScale ?? 15;
     this.tickProbability = options.tickProbability ?? 0.5;
+    this.liveRetentionMs = options.liveRetentionMs ?? WEEK;
     this.start = this.now();
 
     for (const def of options.universe ?? UNIVERSE) {
@@ -76,6 +92,7 @@ export class PriceEngine {
         seed: stockSeed,
         history: generateHistory({ price: def.price, volatility: def.volatility, drift: def.drift, start: this.start, seed: stockSeed }),
         live: [],
+        hourly: [],
         price: def.price,
         updatedAt: this.start,
         random,
@@ -186,7 +203,18 @@ export class PriceEngine {
     return { symbol: state.def.symbol, interval, candles };
   }
 
+  /** How many live samples a stock holds, per resolution. For tests and diagnostics. */
+  retainedSamples(symbol: string): { minute: number; hourly: number } | undefined {
+    const state = this.stocks.get(symbol);
+    return state && { minute: state.live.length, hourly: state.hourly.length };
+  }
+
   // ---------------------------------------------------------------------------
+
+  /** Every live sample still held, oldest first: the hourly ones, then the per-minute ones. */
+  private samples(state: StockState): PricePoint[] {
+    return state.hourly.length > 0 ? [...state.hourly, ...state.live] : state.live;
+  }
 
   /**
    * Every known price from just before `from` to now: the finest generated
@@ -204,7 +232,7 @@ export class PriceEngine {
     });
     const past = generated.slice(firstNeeded).filter((p) => p.t <= this.start);
 
-    const points = [...past, ...state.live.filter((p) => p.t > this.start)].map((p) => ({ ...p }));
+    const points = [...past, ...this.samples(state).filter((p) => p.t > this.start)].map((p) => ({ ...p }));
     const last = points.at(-1);
     if (!last || last.t < now) points.push({ t: now, price: state.price });
     else last.price = state.price;
@@ -226,7 +254,10 @@ export class PriceEngine {
     };
   }
 
-  /** Keeps one live sample per minute: plenty for every chart, bounded memory. */
+  /**
+   * Keeps one live sample per minute for the last `liveRetentionMs` and one
+   * per hour before that, so memory stays bounded however long the server runs.
+   */
   private recordLive(state: StockState, t: number) {
     const last = state.live.at(-1);
     if (last && Math.floor(last.t / MINUTE) === Math.floor(t / MINUTE)) {
@@ -235,6 +266,29 @@ export class PriceEngine {
     } else {
       state.live.push({ t, price: state.price });
     }
+
+    // Move samples that fell out of the retention window into the hourly list.
+    const cutoff = t - this.liveRetentionMs;
+    let expired = 0;
+    while (expired < state.live.length - 1 && (state.live[expired] as PricePoint).t < cutoff) {
+      this.keepHourly(state, state.live[expired] as PricePoint);
+      expired++;
+    }
+    if (expired > 0) state.live.splice(0, expired);
+  }
+
+  /** Keeps the last sample in each hour of the `start` grid, the one the charts snap to. */
+  private keepHourly(state: StockState, sample: PricePoint) {
+    const hourOf = (p: PricePoint) => Math.ceil((p.t - this.start) / HOUR);
+    const last = state.hourly.at(-1);
+    if (last && hourOf(last) === hourOf(sample)) {
+      last.t = sample.t;
+      last.price = sample.price;
+    } else {
+      state.hourly.push({ ...sample });
+    }
+    const oldest = sample.t - LONGEST_WINDOW;
+    while (state.hourly.length > 0 && (state.hourly[0] as PricePoint).t < oldest) state.hourly.shift();
   }
 
   /**
@@ -251,7 +305,7 @@ export class PriceEngine {
 
     // Live samples: keep the last one before each grid time after `start`.
     const byGrid = new Map<number, PricePoint>();
-    for (const sample of state.live) {
+    for (const sample of this.samples(state)) {
       const gridTime = this.start + Math.ceil((sample.t - this.start) / interval) * interval;
       if (gridTime <= now && gridTime >= from) byGrid.set(gridTime, { t: gridTime, price: sample.price });
     }
@@ -266,7 +320,7 @@ export class PriceEngine {
 
   /** Latest known price at or before `t`. */
   private priceAt(state: StockState, t: number): number {
-    const candidates = [...(state.history.get(5 * MINUTE) ?? []), ...state.live];
+    const candidates = [...(state.history.get(5 * MINUTE) ?? []), ...this.samples(state)];
     let price = candidates[0]?.price ?? state.price;
     for (const p of candidates) {
       if (p.t > t) break;

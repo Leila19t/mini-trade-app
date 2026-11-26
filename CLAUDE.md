@@ -113,6 +113,9 @@ Also at the root of `src`: `router.tsx` (every route), `App.tsx` (root layout: h
 - Engine code lives in `apps/mock-server/src/engine`; history is generated at several
   resolutions joined by Brownian bridges, so every chart range agrees at shared timestamps.
   Live ticks use `tickVolatilityScale` (default 15x) so prices visibly move in a demo.
+- Live prices are kept one per minute for the last week (`liveRetentionMs`), then one per hour
+  (the sample every chart from 1W up reads) back to 5 years, so memory stays bounded.
+  Candles older than a week are rebuilt from the hourly prices.
 - Simulated latency (80–450 ms), socket drops and ~2% `503 UNAVAILABLE` errors are on by
   default (`src/chaos.ts`). `CHAOS=off pnpm dev` turns them off; `ERROR_RATE=0.3` raises
   errors to test the error UI. Tests always run with chaos off.
