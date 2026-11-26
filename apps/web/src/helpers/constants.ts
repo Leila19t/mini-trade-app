@@ -1,4 +1,4 @@
-import type { Range, Ticker } from "@mini-trade/contracts";
+import type { CandleInterval, Range, Ticker } from "@mini-trade/contracts";
 import type { ListTab, SortKey } from "./types";
 
 /**
@@ -12,6 +12,8 @@ export const params = {
   tab: "tab",
   sort: "sort",
   range: "range",
+  mode: "mode",
+  interval: "interval",
 } as const;
 
 /** Builds in-app URLs, so links never hand-write paths. */
@@ -23,6 +25,15 @@ export const paths = {
   stock: (symbol: Ticker) => `/stocks/${encodeURIComponent(symbol)}`,
 };
 
+/** localStorage key for the last chart mode (Simple / Pro), used when the URL doesn't say. */
+export const CHART_MODE_STORAGE_KEY = "mini-trade:chart-mode";
+
+/** The Pro chart needs room: phones always get the Simple chart. Matches Tailwind's `sm`. */
+export const PRO_CHART_MEDIA_QUERY = "(min-width: 640px)";
+
+/** Candles are refetched this often; live ticks move the last one in between. */
+export const CANDLES_REFETCH_MS = 60_000;
+
 /** localStorage key for the theme preference. index.html reads it too, before first paint. */
 export const THEME_STORAGE_KEY = "mini-trade:theme";
 
@@ -31,6 +42,7 @@ export const queryKeys = {
   stocks: () => ["stocks"] as const,
   stock: (symbol: Ticker) => ["stocks", symbol] as const,
   history: (symbol: Ticker, range: Range) => ["stocks", symbol, "history", range] as const,
+  candles: (symbol: Ticker, interval: CandleInterval) => ["stocks", symbol, "candles", interval] as const,
   watchlist: () => ["watchlist"] as const,
 };
 

@@ -17,3 +17,6 @@ export type ListTab = "all" | "watchlist";
 
 /** How the stock list is ordered. Price and change sorts use live prices. */
 export type SortKey = "name" | "price-desc" | "price-asc" | "change-desc" | "change-asc";
+
+/** Stock detail chart: area chart over a range, or candlesticks over an interval (desktop only). */
+export type ChartMode = "simple" | "pro";

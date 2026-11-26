@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { API_PREFIX, endpoints, HistoryQuery, Ticker, type EndpointName, type EndpointResponse } from "@mini-trade/contracts";
+import { API_PREFIX, CANDLE_INTERVALS, CandlesQuery, endpoints, HistoryQuery, Ticker, type EndpointName, type EndpointResponse } from "@mini-trade/contracts";
 import { sleep, type Chaos } from "../chaos";
 import type { PriceEngine } from "../engine";
 import type { WatchlistStore } from "../watchlist-store";
@@ -55,6 +55,13 @@ function createHandlers({ engine, watchlists }: Deps): Handlers {
       const parsed = HistoryQuery.safeParse(Object.fromEntries(query));
       if (!parsed.success) throw new HttpError("BAD_REQUEST", "range must be one of 1D, 1W, 1M, 3M, 1Y, 5Y");
       return found(engine.getHistory(symbol, parsed.data.range), symbol);
+    },
+
+    getCandles: ({ params, query }) => {
+      const symbol = knownSymbol(engine, params.symbol);
+      const parsed = CandlesQuery.safeParse(Object.fromEntries(query));
+      if (!parsed.success) throw new HttpError("BAD_REQUEST", `interval must be one of ${CANDLE_INTERVALS.join(", ")}`);
+      return found(engine.getCandles(symbol, parsed.data.interval), symbol);
     },
 
     getWatchlist: ({ userId }) => ({ symbols: watchlists.get(userId) }),

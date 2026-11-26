@@ -1,5 +1,7 @@
 import {
   ApiError,
+  CANDLE_COUNT,
+  CandlesResponse,
   endpoints,
   HistoryResponse,
   RANGES,
@@ -83,6 +85,28 @@ describe("GET /api/stocks/:symbol/history", () => {
 
   it("404s for an unknown symbol", async () => {
     await expectError(await request(endpoints.getHistory.path("ZZZZ", "1D")), 404, "NOT_FOUND");
+  });
+});
+
+describe("GET /api/stocks/:symbol/candles", () => {
+  it("returns candles for the interval", async () => {
+    const res = await request(endpoints.getCandles.path("AAPL", "5m"));
+    const body = CandlesResponse.parse(await res.json());
+    expect(body).toMatchObject({ symbol: "AAPL", interval: "5m" });
+    expect(body.candles).toHaveLength(CANDLE_COUNT);
+  });
+
+  it("defaults to 15m when interval is missing", async () => {
+    const body = CandlesResponse.parse(await (await request("/api/stocks/AAPL/candles")).json());
+    expect(body.interval).toBe("15m");
+  });
+
+  it("400s for an unknown interval", async () => {
+    await expectError(await request("/api/stocks/AAPL/candles?interval=2m"), 400, "BAD_REQUEST");
+  });
+
+  it("404s for an unknown symbol", async () => {
+    await expectError(await request(endpoints.getCandles.path("ZZZZ", "1H")), 404, "NOT_FOUND");
   });
 });
 

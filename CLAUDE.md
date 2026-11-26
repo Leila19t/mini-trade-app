@@ -1,7 +1,7 @@
 # Mini Trade
 
 A small trading app built as a take-home: a live stock list, a stock detail page
-with a historical chart (1D–5Y) and a watchlist. The backend is a mock that must
+with a historical chart (Simple: 1D–5Y line; Pro: candlesticks, desktop only) and a watchlist. The backend is a mock that must
 behave like a real one: real WebSocket, latency, dropped connections, occasional errors.
 
 Treat this as code a team will keep building on. Clarity beats cleverness.
@@ -25,6 +25,8 @@ pnpm install          # install everything
 pnpm dev              # web + mock server together
 pnpm typecheck        # typecheck every package
 pnpm test             # run every package's tests
+pnpm build            # build the web app (apps/web/dist)
+pnpm start            # production: the mock server also serves apps/web/dist (same origin)
 pnpm --filter @mini-trade/web <script>      # one package
 pnpm --filter <pkg> add <dep>               # add a dependency to one package
 pnpm --filter <pkg> add <pkg> --workspace   # link a workspace package (workspace deps only!)
@@ -75,6 +77,9 @@ Also at the root of `src`: `router.tsx` (every route), `App.tsx` (root layout: h
 - **Routing:** React Router (`createBrowserRouter`). Routes: `/` MarketsScreen,
   `/stocks/:symbol` StockDetailScreen, `*` NotFoundScreen. Build links with `paths` from
   `helpers/constants.ts`, never hand-written strings.
+- **Charts:** Simple is a hand-written SVG (`components/chart/PriceChart.tsx`); Pro uses
+  Lightweight Charts (`CandleChart.tsx`, lazy-loaded). Its canvas gets colours from the CSS
+  tokens at runtime; keep the TradingView attribution logo on (licence).
 - **Styling:** Tailwind CSS v4 (Vite plugin), utility classes in the JSX, no CSS files per
   component. `index.css` holds the Tailwind setup and base styles; `tokens.css` holds the
   colours, mirroring the Figma "Theme" collection 1:1. Tailwind colour classes keep the
@@ -93,15 +98,16 @@ Also at the root of `src`: `router.tsx` (every route), `App.tsx` (root layout: h
 - **Redux Toolkit** = client state that changes often: live prices keyed by symbol,
   connection status. Use memoised per-symbol selectors so one tick re-renders one row.
 - **TanStack Query** = server state: stock list, stock detail, history per
-  `[symbol, range]`, watchlist. Watchlist mutations are optimistic with rollback.
+  `[symbol, range]`, candles per `[symbol, interval]`, watchlist. Watchlist mutations are optimistic with rollback.
 - Never copy server data into Redux, or live prices into the Query cache.
 - The socket client is a plain TS class outside React (reconnect with backoff,
   ref-counted subscriptions, heartbeat timeout). React talks to it through hooks.
 
 ### Mock server
 
-- One seeded price engine (geometric Brownian motion) produces both history and live
-  ticks, so the chart's last point always matches the live price.
+- One seeded price engine (geometric Brownian motion) produces history, candles and live
+  ticks, so the chart's last point always matches the live price. Candles (`engine/candles.ts`)
+  fill the price path in with seeded Brownian bridges, so they agree with the line chart.
 - Ticks are batched into `prices` messages on a short interval.
 - Engine code lives in `apps/mock-server/src/engine`; history is generated at several
   resolutions joined by Brownian bridges, so every chart range agrees at shared timestamps.
@@ -113,6 +119,9 @@ Also at the root of `src`: `router.tsx` (every route), `App.tsx` (root layout: h
   open, nothing arrives) that only the client's heartbeat timeout can detect.
 - One HTTP server serves REST (`src/http`, routes registered from `endpoints`) and the
   WebSocket (`src/ws`, upgrade on `WS_PATH`), so dev and production are same-origin.
+  When `apps/web/dist` exists it also serves the web app (`src/http/static.ts`, SPA fallback
+  to index.html). `GET /health` skips chaos for the host's health check.
+- Deploy: `render.yaml` (Render Blueprint, one web service, Node 24, pnpm via Corepack).
   Handlers are typed with `EndpointResponse<K>` and can't return the wrong shape.
 - On `subscribe` the server sends a snapshot of the newly added symbols' prices, so a
   reconnecting client is current immediately.
@@ -141,6 +150,11 @@ Also at the root of `src`: `router.tsx` (every route), `App.tsx` (root layout: h
 - Vitest for unit tests (price engine, socket client with fake timers, reducers,
   formatters); React Testing Library for components; one Playwright happy path.
 - Tests must be deterministic: seed the engine and turn simulated failures off.
+- Web tests (`pnpm --filter @mini-trade/web test`) run in jsdom. Shared helpers live in
+  `src/test/`: `setup.ts` (jest-dom matchers, cleanup), `media.ts` (fake `matchMedia`;
+  `setViewportWidth()` to test phone vs desktop), `candles.ts` (candle fixtures).
+  Lightweight Charts draws on a canvas jsdom can't render, so `CandleChart.test.tsx` mocks
+  the library and checks the calls. Build dates from local parts so tests pass in any time zone.
 
 ## Working with AI on this repo
 

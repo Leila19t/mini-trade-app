@@ -1,0 +1,19 @@
+# Render Blueprint: one web service runs the mock server, which also serves the
+# built web app, so the app, the API and the WebSocket share one origin.
+# Deploy: Render Dashboard → New → Blueprint → pick this repo.
+services:
+  - type: web
+    name: mini-trade
+    runtime: node
+    plan: 0.5c-512mb # smallest paid instance (0.5 CPU, 512 MB): always on, no wake-up delay
+    region: frankfurt
+    # pnpm comes from the packageManager field in package.json, via Corepack.
+    buildCommand: corepack pnpm install --frozen-lockfile && corepack pnpm build
+    startCommand: corepack pnpm start
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: "24" # Corepack ships with Node up to 24
+      - key: COREPACK_ENABLE_DOWNLOAD_PROMPT
+        value: "0"

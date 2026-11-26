@@ -110,3 +110,18 @@ How I used AI on this project: what I asked for, what it got right, and where I 
   - `--container-page` was 1440px, so content ran edge to edge; CLAUDE.md and Figma say 1120px + 24px gutters. Now 1168px.
 - Headless Chrome won't shrink a window below ~500px, so 390px screenshots looked broken. Claude switched to device emulation over the DevTools protocol for real phone widths.
 - Checked by screenshot at 1440 and 390px, light and dark: list, watchlist, empty search, loading, chart tooltip, Undo toast, and the reconnecting banner (by freezing the mock server with SIGSTOP to cause a silent stall).
+
+### 2026-11-26: Pro chart, wrong-symbol page
+
+- Dropped sign-in to keep the app simple for reviewers and added a Pro chart instead, designed in Figma first (candles + volume, interval tabs, live candle with countdown, crosshair + OHLCV legend; desktop only).
+- Claude proposed a hand-written SVG chart to match the existing one; I chose TradingView's Lightweight Charts instead. Claude checked the v5.3 typings before writing code (the v5 series API differs from most tutorials) and kept the TradingView logo on, which is how its licence's attribution can be met.
+- Mock server: candles built from the engine's price path with seeded Brownian bridges, so they agree with the line chart and finished candles never change. A test caught the live candle closing at the wrong price when the clock sat exactly on a candle boundary; fixed (a point at the start of a candle belongs to that candle).
+- My shell can't run the Mac's native binaries (TypeScript 7, rolldown), so Claude typechecked with the web app's TypeScript 6 and ran the server tests and a production build on a copy of the repo in its own workspace. It asked me to install the chart package on the Mac rather than running pnpm from Linux, which could have swapped out the Mac-only binaries.
+- The production bundle was 690 KB in one file; the Pro chart is now lazy-loaded (173 KB chunk, ~56 KB gzipped).
+- Wrong symbol: I asked for the page frame to stay with a "Wrong symbol" message instead of the generic not-found page, then simplified it in three rounds (no grid lines, no placeholder blocks, no tab placeholder).
+
+### 2026-11-26: web tests
+
+- The web app had no test runner. Claude asked before adding dependencies; I chose helpers + components: Vitest, jsdom and React Testing Library (dev dependencies of `apps/web`).
+- 46 tests: the live-candle and time helpers, the OHLCV legend, the Simple/Pro toggle, the chart wiring (Lightweight Charts mocked: full redraw vs. last-candle update, countdown, crosshair, keyboard), the Pro panel (legend, hover, interval in the URL, loading/error/placeholder states) and the mode switch (URL vs. remembered mode, P shortcut, phones always Simple, resizing).
+- Correction it caught itself: a time-formatting test only passed in some time zones (it failed when run as New York). Rewritten to build dates from local parts; checked in UTC, Dubai, New York and UTC+14.

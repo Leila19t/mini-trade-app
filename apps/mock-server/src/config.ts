@@ -13,6 +13,8 @@ export interface ServerConfig {
   initialWatchlist: Ticker[];
   /** Simulated failures. `false` turns them all off (tests). */
   chaos: ChaosOptions | false;
+  /** Built web app to serve on the same origin (production). Unset in dev, where Vite serves it. */
+  webDir?: string;
 }
 
 export const DEFAULT_CHAOS: ChaosOptions = {

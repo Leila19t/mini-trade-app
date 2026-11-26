@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import { CandlesResponse, type CandleInterval } from "./candles";
 import { HistoryResponse, type Range } from "./history";
 import type { Ticker } from "./primitives";
 import { StockDetail, StockListResponse } from "./stock";
@@ -44,6 +45,13 @@ export const endpoints = {
     path: (symbol: Ticker, range: Range) =>
       `${API_PREFIX}/stocks/${seg(symbol)}/history?range=${seg(range)}`,
     response: HistoryResponse,
+  },
+  getCandles: {
+    method: "GET",
+    route: `${API_PREFIX}/stocks/:symbol/candles`,
+    path: (symbol: Ticker, interval: CandleInterval) =>
+      `${API_PREFIX}/stocks/${seg(symbol)}/candles?interval=${seg(interval)}`,
+    response: CandlesResponse,
   },
   getWatchlist: {
     method: "GET",

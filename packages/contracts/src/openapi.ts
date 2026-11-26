@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { endpoints, type EndpointName } from "./api";
+import { Candle, CandleInterval, CandlesResponse } from "./candles";
 import { ApiError, ApiErrorCode } from "./errors";
 import { HistoryPoint, HistoryResponse, Range } from "./history";
 import { Price, Ticker, Timestamp } from "./primitives";
@@ -33,6 +34,9 @@ register(StockStats, { id: "StockStats", description: "All 24h figures are a rol
 register(StockDetail, { id: "StockDetail", description: "Everything the detail page needs except the chart history." });
 register(HistoryPoint, { id: "HistoryPoint" });
 register(HistoryResponse, { id: "HistoryResponse", description: "Price history for one stock and range, oldest point first. The last point is the live price." });
+register(CandleInterval, { id: "CandleInterval", description: "Candle size. Candles start on multiples of the interval since the Unix epoch (UTC)." });
+register(Candle, { id: "Candle", description: "Open, high, low and close over one interval, plus the shares traded. `timestamp` is the start of the candle." });
+register(CandlesResponse, { id: "CandlesResponse", description: "The latest 64 candles, oldest first. The last one is still open: its close is the live price." });
 register(Watchlist, { id: "Watchlist", description: "The user's starred stocks, most recently added first." });
 register(ApiErrorCode, { id: "ApiErrorCode" });
 register(ApiError, { id: "ApiError", description: "Body of every non-2xx response." });
@@ -55,6 +59,7 @@ const docs: Record<EndpointName, EndpointDoc> = {
   listStocks: { summary: "List stocks", description: "Every stock with a price snapshot and a 24h trend for the sparkline. Live prices then arrive over the WebSocket.", tag: "Stocks", errors: [] },
   getStock: { summary: "Get stock detail", tag: "Stocks", errors: [400, 404] },
   getHistory: { summary: "Get price history", description: "Chart points for one range. Every range agrees with the others at shared timestamps.", tag: "Stocks", errors: [400, 404] },
+  getCandles: { summary: "Get candles", description: "OHLC candles with volume for the Pro chart, built from the same price path as the history, so both charts agree.", tag: "Stocks", errors: [400, 404] },
   getWatchlist: { summary: "Get the watchlist", tag: "Watchlist", errors: [] },
   addToWatchlist: { summary: "Add a stock to the watchlist", description: "Idempotent: adding a stock that is already there changes nothing. Returns the whole list.", tag: "Watchlist", errors: [400, 404] },
   removeFromWatchlist: { summary: "Remove a stock from the watchlist", description: "Idempotent: removing a stock that isn't there changes nothing. Returns the whole list.", tag: "Watchlist", errors: [400] },
@@ -90,6 +95,13 @@ const rangeParam = {
   schema: { ...ref(Range), default: "1D" },
 };
 
+const intervalParam = {
+  name: "interval",
+  in: "query",
+  required: false,
+  schema: { ...ref(CandleInterval), default: "15m" },
+};
+
 const DESCRIPTION = `Mock backend for the Mini Trade take-home. It behaves like a real one: responses take 80–450 ms, about 2% of requests fail with 503, and WebSocket connections drop now and then. Start it with \`CHAOS=off\` to turn that off.
 
 **Live prices** use a WebSocket at \`${WS_PATH}\` on the same host, which OpenAPI can't describe. The server sends \`welcome\` on connect; the client sends \`subscribe\` / \`unsubscribe\`; the server replies \`subscribed\`, sends a \`prices\` snapshot of new symbols, then batched \`prices\` updates and a \`heartbeat\` every few seconds. Message schemas: \`ClientMessage\` and \`ServerMessage\` below.`;
@@ -109,6 +121,7 @@ export function buildOpenApiDocument() {
     const parameters = [
       ...(endpoint.route.includes(":symbol") ? [symbolParam] : []),
       ...(name === "getHistory" ? [rangeParam] : []),
+      ...(name === "getCandles" ? [intervalParam] : []),
     ];
 
     const responses: Record<string, unknown> = {
@@ -136,7 +149,7 @@ export function buildOpenApiDocument() {
     info: { title: "Mini Trade mock API", version: "1.0.0", description: DESCRIPTION },
     servers: [{ url: "http://localhost:4000", description: "Local mock server (pnpm dev)" }],
     tags: [
-      { name: "Stocks", description: "Stock list, detail and chart history. Public." },
+      { name: "Stocks", description: "Stock list, detail, chart history and candles. Public." },
       { name: "Watchlist", description: "The user's starred stocks. One demo user (the app has no sign-in)." },
     ],
     paths,

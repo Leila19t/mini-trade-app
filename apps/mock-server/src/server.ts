@@ -6,6 +6,7 @@ import { DEFAULT_CONFIG, type ServerConfig } from "./config";
 import { PriceEngine } from "./engine";
 import { createApiHandler } from "./http/api";
 import { HttpError, sendError } from "./http/respond";
+import { createStaticHandler } from "./http/static";
 import { DOCS_HTML, openApiJson } from "./openapi/document";
 import { WatchlistStore } from "./watchlist-store";
 import { PriceStream } from "./ws/price-stream";
@@ -37,10 +38,13 @@ export function createMockServer(overrides: Partial<ServerConfig> = {}): MockSer
     heartbeatIntervalMs: config.heartbeatIntervalMs,
   });
 
-  // Docs are served before the API handler, so simulated latency and errors never hit them.
+  const handleStatic = config.webDir ? createStaticHandler(config.webDir) : undefined;
+
+  // Docs and the health check are served before the API handler, so simulated latency and errors never hit them.
   const docs: Record<string, { type: string; body: string }> = {
     "/api/openapi.json": { type: "application/json; charset=utf-8", body: openApiJson() },
     "/docs": { type: "text/html; charset=utf-8", body: DOCS_HTML },
+    "/health": { type: "application/json; charset=utf-8", body: '{"status":"ok"}' },
   };
 
   const http = createServer((req, res) => {
@@ -52,6 +56,7 @@ export function createMockServer(overrides: Partial<ServerConfig> = {}): MockSer
     }
 
     handleApi(req, res)
+      .then(async (handled) => handled || (await handleStatic?.(req, res)))
       .then((handled) => {
         if (!handled) sendError(res, new HttpError("NOT_FOUND", "Not found"));
       })

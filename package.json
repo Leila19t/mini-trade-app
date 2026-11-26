@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "pnpm --parallel --recursive run dev",
+    "build": "pnpm --filter @mini-trade/web build",
+    "start": "pnpm --filter @mini-trade/server start",
     "typecheck": "pnpm --recursive run typecheck",
     "test": "pnpm --recursive run test"
   },

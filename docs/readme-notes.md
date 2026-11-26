@@ -62,7 +62,10 @@ Points to fold into the final README. Delete this file before submitting.
 - Search, tab, sort and chart range all live in the URL (`?q=&tab=&sort=&range=`): shareable, refresh-safe, back-button friendly. Typing in the header search from a detail page jumps to the list.
 - Live sorting without re-rendering the list on every tick: the selector returns only the *order* of symbols (compared shallowly), so the list re-renders when rows swap places; each row still re-renders only for its own price.
 - Stats are rolling 24h figures (24h ago / high / low / volume) instead of the Figma "Open / Prev. close": the mock trades 24/7, so there's no session open or close.
-- The chart is a hand-written SVG (no chart library): line, area, live dot, crosshair + tooltip, arrow keys for keyboard users, drag to scrub on touch. It always ends at the live price.
+- The Simple chart is a hand-written SVG (no chart library): line, area, live dot, crosshair + tooltip, arrow keys for keyboard users, drag to scrub on touch. It always ends at the live price.
+- Pro chart (desktop only, `?mode=pro&interval=15m`, `P` toggles, last mode remembered in localStorage): candlesticks + volume over 1m–1D intervals, drawn with TradingView's Lightweight Charts (the TradingView logo on the chart is the attribution its Apache-2.0 licence asks for). Lazy-loaded, so phones and Simple-only visitors never download the library. The last candle is live: ticks move its close/high/low, a new candle starts when the interval ends, and a countdown next to the live price shows when. Crosshair + OHLCV legend, arrow keys for keyboard users, legend announced to screen readers only while hovering.
+- Candles come from the mock server (`GET /api/stocks/:symbol/candles?interval=15m`), built from the same price path as the line chart, with seeded Brownian bridges for the wicks: the two charts always agree, finished candles never change, and candles start on clock boundaries like a real exchange. Volume is synthetic but stable, and the live candle's volume grows as it fills.
+- A wrong symbol in the URL (`/stocks/wrong-val`, or a valid-looking one the market doesn't have) keeps the page frame: the Markets link and the chart card with a "Wrong symbol" message. Lowercase symbols redirect (`/stocks/nvda` → `/stocks/NVDA`).
 - After 4 failed reconnects the badge says "Offline" and the banner copy changes; "Retry now" skips the backoff wait.
 - Not yet built from the motion notes: digit roll on price change, sliding tab underline, row collapse on unstar, chart morph between ranges (the chart dims under a progress bar instead).
 
@@ -77,7 +80,7 @@ Points to fold into the final README. Delete this file before submitting.
 - No sign-in (Figma: "everything works the moment the app opens"). The watchlist and alerts belong to one demo user on the mock server, so they survive a reload.
 - Real database (Postgres via Drizzle; PGlite locally so `pnpm dev` needs no setup).
 - Price alerts as % move from yesterday's close (separate up/down limits), checked on the server and pushed over the socket; occasional "news shock" jumps in the mock so alerts actually fire.
-- Hosting on Render: one service (Node server also serves the built web app) + Render Postgres; same origin keeps WebSockets simple.
+- Hosting on Render (`render.yaml`): one web service; the Node server also serves the built web app, so the app, API and WebSocket share one origin (no CORS, no separate socket URL). Smallest paid instance, so it's always on (no wake-up delay for reviewers); the in-memory watchlist still resets on each deploy or restart. Chaos (latency, 2% errors, socket drops) stays on in production on purpose; `CHAOS=off` turns it off.
 
 ## Links to add
 - API docs: `docs/openapi.json`, or `/docs` on the running mock server (Swagger UI, try requests live).

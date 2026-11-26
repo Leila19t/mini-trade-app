@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -11,12 +12,12 @@
   },
   "dependencies": {
     "@mini-trade/contracts": "workspace:*",
+    "tsx": "^4.23.15",
     "ws": "^8.23.0"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
     "@types/ws": "^8.18.2",
-    "tsx": "^4.23.15",
     "vitest": "^5.1.1"
   }
 }

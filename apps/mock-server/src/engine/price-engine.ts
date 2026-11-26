@@ -1,5 +1,17 @@
-import type { HistoryResponse, PriceTick, Range, StockDetail, StockSummary, Ticker } from "@mini-trade/contracts";
-import { generateHistory, type PricePoint } from "./history";
+import {
+  CANDLE_COUNT,
+  CANDLE_INTERVAL_MS,
+  type CandleInterval,
+  type CandlesResponse,
+  type HistoryResponse,
+  type PriceTick,
+  type Range,
+  type StockDetail,
+  type StockSummary,
+  type Ticker,
+} from "@mini-trade/contracts";
+import { buildCandles } from "./candles";
+import { generateHistory, LEVELS, type PricePoint } from "./history";
 import { createNormal, createRandom, hashString, type RandomSource } from "./random";
 import { RANGE_CONFIG } from "./ranges";
 import { DAY, HOUR, MINUTE, YEAR } from "./time";
@@ -23,6 +35,8 @@ export interface PriceEngineOptions {
 
 interface StockState {
   def: StockDefinition;
+  /** This stock's own seed, derived from the engine seed. */
+  seed: number;
   /** Generated past, keyed by interval (ms). Ends at the engine start time. */
   history: Map<number, PricePoint[]>;
   /** Live prices since start, one sample per minute (the latest price in that minute). */
@@ -59,6 +73,7 @@ export class PriceEngine {
       const random = createRandom(stockSeed ^ 0x9e3779b9);
       this.stocks.set(def.symbol, {
         def,
+        seed: stockSeed,
         history: generateHistory({ price: def.price, volatility: def.volatility, drift: def.drift, start: this.start, seed: stockSeed }),
         live: [],
         price: def.price,
@@ -151,7 +166,50 @@ export class PriceEngine {
     return { symbol: state.def.symbol, range, points };
   }
 
+  /** The latest candles for the Pro chart, from the same prices as the history. */
+  getCandles(symbol: string, interval: CandleInterval): CandlesResponse | undefined {
+    const state = this.stocks.get(symbol);
+    if (!state) return undefined;
+
+    const now = this.now();
+    const ms = CANDLE_INTERVAL_MS[interval];
+    const from = Math.floor(now / ms) * ms - CANDLE_COUNT * ms;
+    const candles = buildCandles({
+      path: this.pricesSince(state, from),
+      interval: ms,
+      count: CANDLE_COUNT,
+      now,
+      volatility: state.def.volatility,
+      averageVolume: state.def.averageVolume,
+      seed: state.seed,
+    });
+    return { symbol: state.def.symbol, interval, candles };
+  }
+
   // ---------------------------------------------------------------------------
+
+  /**
+   * Every known price from just before `from` to now: the finest generated
+   * history level that reaches back far enough, then the live samples, then
+   * the current price.
+   */
+  private pricesSince(state: StockState, from: number): PricePoint[] {
+    const now = this.now();
+    const reaching = LEVELS.filter((l) => this.start - l.span <= from); // coarse to fine
+    const level = reaching[reaching.length - 1] ?? LEVELS[0];
+    const generated = level ? (state.history.get(level.interval) ?? []) : [];
+    let firstNeeded = 0; // last generated point at or before `from`
+    generated.forEach((p, i) => {
+      if (p.t <= from) firstNeeded = i;
+    });
+    const past = generated.slice(firstNeeded).filter((p) => p.t <= this.start);
+
+    const points = [...past, ...state.live.filter((p) => p.t > this.start)].map((p) => ({ ...p }));
+    const last = points.at(-1);
+    if (!last || last.t < now) points.push({ t: now, price: state.price });
+    else last.price = state.price;
+    return points;
+  }
 
   private summary(state: StockState): StockSummary {
     const now = this.now();
