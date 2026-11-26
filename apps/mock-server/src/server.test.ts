@@ -17,7 +17,9 @@ import { startTestServer, type TestServer } from "./testing";
 let t: TestServer;
 
 beforeEach(async () => {
-  t = await startTestServer({ initialWatchlist: ["AAPL", "NVDA"] });
+  // These are REST tests: freeze the market (no ticks during a test) so two
+  // requests in a row see the same live price. A 20 ms tick races them on slow CI.
+  t = await startTestServer({ initialWatchlist: ["AAPL", "NVDA"], flushIntervalMs: 60_000 });
 });
 afterEach(() => t.close());
 
