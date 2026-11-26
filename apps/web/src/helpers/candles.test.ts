@@ -5,6 +5,7 @@ import {
   candleEnd,
   formatCandleTime,
   formatCountdown,
+  msUntilNextCandle,
   toChartTime,
   withAlpha,
   withLivePrice,
@@ -112,5 +113,19 @@ describe("withAlpha", () => {
 
   it("leaves anything that isn't hex alone", () => {
     expect(withAlpha("transparent", 0.5)).toBe("transparent");
+  });
+});
+
+describe("msUntilNextCandle", () => {
+  const MIN = 60_000;
+  const candles = makeCandles([101, 102]); // 15m candles; the live one starts at T0 + 15m
+
+  it("waits until the live candle closes, plus the lag", () => {
+    expect(msUntilNextCandle(candles, "15m", T0 + 20 * MIN, 1000)).toBe(10 * MIN + 1000);
+  });
+
+  it("is 0 once that time has passed, or without candles", () => {
+    expect(msUntilNextCandle(candles, "15m", T0 + 40 * MIN, 1000)).toBe(0);
+    expect(msUntilNextCandle([], "15m", T0, 1000)).toBe(0);
   });
 });

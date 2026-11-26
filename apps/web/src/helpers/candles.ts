@@ -51,6 +51,20 @@ export function candleEnd(timestamp: number, interval: CandleInterval): number {
   return timestamp + CANDLE_INTERVAL_MS[interval];
 }
 
+/**
+ * How long until there's a new candle worth fetching: when the live (last)
+ * candle closes, plus `lagMs` so the server has started the next one. Never negative.
+ */
+export function msUntilNextCandle(
+  candles: readonly Candle[],
+  interval: CandleInterval,
+  now: number,
+  lagMs: number,
+): number {
+  const last = candles.at(-1);
+  return last ? Math.max(0, candleEnd(last.timestamp, interval) + lagMs - now) : 0;
+}
+
 /** Time left until the live candle closes: "12:41", or "13:05:22" for daily candles. */
 export function formatCountdown(ms: number): string {
   const total = Math.max(0, Math.ceil(ms / 1000));

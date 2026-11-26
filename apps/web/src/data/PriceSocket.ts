@@ -30,8 +30,13 @@ export interface PriceSocketOptions {
   connectTimeoutMs?: number;
   /** Failed attempts in a row before the status says "offline" instead of "reconnecting". */
   offlineAfterAttempts?: number;
+  /** How long a symbol nobody watches stays subscribed, so quick back-and-forth navigation doesn't resubscribe. */
+  unsubscribeDelayMs?: number;
   random?: () => number;
 }
+
+/** Grace periods ending this close together are swept together (one unsubscribe message). */
+const SWEEP_SLACK_MS = 1_000;
 
 /** Missed heartbeats before the socket counts as dead (the server sends one every interval). */
 const MISSED_HEARTBEATS = 2.5;
@@ -43,7 +48,8 @@ const MISSED_HEARTBEATS = 2.5;
  * - Detects silent stalls: if nothing arrives for ~2.5 heartbeat intervals,
  *   the socket is treated as dead and replaced.
  * - Subscriptions are ref-counted: two rows showing AAPL make one server
- *   subscription, and it ends only when both unmount. Changes within the same
+ *   subscription, and it ends only when both unmount, plus a short grace
+ *   period (`unsubscribeDelayMs`) in case it's back soon. Changes within the same
  *   task are batched into one message, and everything is resubscribed after
  *   a reconnect (the server replies with a fresh price snapshot).
  */
@@ -58,8 +64,12 @@ export class PriceSocket {
   private livenessTimer: ReturnType<typeof setTimeout> | undefined;
   private livenessTimeoutMs: number;
 
-  /** How many subscribers each symbol has. */
+  /** How many subscribers each symbol has. 0 = in its grace period, still subscribed on the server. */
   private readonly counts = new Map<Ticker, number>();
+  /** Symbols at 0 subscribers, with when their grace period ends (epoch ms). */
+  private readonly lingering = new Map<Ticker, number>();
+  /** One timer for every grace period, so symbols that leave together unsubscribe in one message. */
+  private sweepTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly pendingSubscribe = new Set<Ticker>();
   private readonly pendingUnsubscribe = new Set<Ticker>();
   private flushQueued = false;
@@ -70,6 +80,7 @@ export class PriceSocket {
       backoff: { initialMs: 500, maxMs: 10_000 },
       connectTimeoutMs: 10_000,
       offlineAfterAttempts: 4,
+      unsubscribeDelayMs: 10_000,
       random: Math.random,
       ...options,
     };
@@ -100,9 +111,13 @@ export class PriceSocket {
   /** Start receiving prices for `symbols`. Returns the matching unsubscribe. */
   subscribe(symbols: readonly Ticker[]): () => void {
     for (const symbol of symbols) {
-      const count = this.counts.get(symbol) ?? 0;
-      this.counts.set(symbol, count + 1);
-      if (count === 0) this.queueChange(symbol, "subscribe");
+      const count = this.counts.get(symbol);
+      this.counts.set(symbol, (count ?? 0) + 1);
+      if (this.lingering.delete(symbol)) {
+        // Back within the grace period: the server never stopped sending it.
+      } else if (count === undefined) {
+        this.queueChange(symbol, "subscribe");
+      }
     }
 
     let active = true;
@@ -112,8 +127,9 @@ export class PriceSocket {
       for (const symbol of symbols) {
         const count = this.counts.get(symbol) ?? 0;
         if (count <= 1) {
-          this.counts.delete(symbol);
-          this.queueChange(symbol, "unsubscribe");
+          this.counts.set(symbol, 0);
+          this.lingering.set(symbol, Date.now() + this.options.unsubscribeDelayMs);
+          this.scheduleSweep();
         } else {
           this.counts.set(symbol, count - 1);
         }
@@ -227,6 +243,25 @@ export class PriceSocket {
     if (this.flushQueued) return;
     this.flushQueued = true;
     queueMicrotask(() => this.flush());
+  }
+
+  private scheduleSweep() {
+    if (this.sweepTimer !== undefined || this.lingering.size === 0) return;
+    const next = Math.min(...this.lingering.values());
+    this.sweepTimer = setTimeout(() => this.sweep(), Math.max(0, next - Date.now()));
+  }
+
+  /** Unsubscribes every symbol whose grace period is (about) over, in one message. */
+  private sweep() {
+    this.sweepTimer = undefined;
+    const cutoff = Date.now() + SWEEP_SLACK_MS;
+    for (const [symbol, until] of this.lingering) {
+      if (until > cutoff) continue;
+      this.lingering.delete(symbol);
+      this.counts.delete(symbol);
+      this.queueChange(symbol, "unsubscribe");
+    }
+    this.scheduleSweep();
   }
 
   private flush() {

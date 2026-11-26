@@ -14,7 +14,9 @@ const mutationKey = ["watchlist", "toggle"];
 
 /**
  * Star / unstar a stock, optimistically: the star flips at once and rolls back
- * if the server says no, with a toast offering Retry. Callbacks live on the
+ * if the server says no, with a toast offering Retry. Toggles run one at a time,
+ * in order, and each response is the whole watchlist, so the last one is stored
+ * as is: no refetch unless something failed. Callbacks live on the
  * mutation (not on `mutate`), so they still run when the row that started it
  * has already left the screen.
  */
@@ -24,6 +26,8 @@ export function useToggleWatchlist() {
 
   const mutation = useMutation({
     mutationKey,
+    // One at a time, in order: the last response is then the server's final state.
+    scope: { id: "watchlist" },
     mutationFn: ({ symbol, starred }: ToggleVariables) =>
       request(starred ? "addToWatchlist" : "removeFromWatchlist", [symbol]),
 
@@ -48,10 +52,14 @@ export function useToggleWatchlist() {
       });
     },
 
-    onSettled: () => {
-      // Sync with the server once the last of several quick toggles finishes,
-      // so an early response can't undo a later optimistic change.
-      if (queryClient.isMutating({ mutationKey }) === 1) {
+    onSuccess: (watchlist) => {
+      // Only the last of several quick toggles: an earlier response would undo a later optimistic change.
+      if (queryClient.isMutating({ mutationKey }) === 1) queryClient.setQueryData(key, watchlist);
+    },
+
+    onSettled: (_data, error) => {
+      // After a failure the rollback may be out of date (other toggles were queued): ask the server.
+      if (error && queryClient.isMutating({ mutationKey }) === 1) {
         void queryClient.invalidateQueries({ queryKey: key });
       }
     },
