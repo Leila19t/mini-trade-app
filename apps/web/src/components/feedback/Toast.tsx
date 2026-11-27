@@ -6,7 +6,6 @@ interface ToastProps {
   onDismiss: () => void;
 }
 
-/** Dark snackbar with an optional action, e.g. "Removed MSFT from your watchlist. Undo". */
 export function Toast({ message, action, onDismiss }: ToastProps) {
   return (
     <div className="flex animate-toast-in items-center gap-4 rounded-[10px] bg-inverse-surface px-4 py-3 text-sm leading-[normal] text-inverse-text drop-shadow-[0px_8px_12px_rgba(15,23,41,0.18)] motion-reduce:animate-none">

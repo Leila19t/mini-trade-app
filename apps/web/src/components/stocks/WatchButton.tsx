@@ -8,8 +8,12 @@ interface WatchButtonProps {
   className?: string;
 }
 
-/** "Add to watchlist" / "In watchlist" on the detail page. Mirrors the list star. */
-export function WatchButton({ starred, onToggle, disabled, className = "" }: WatchButtonProps) {
+export function WatchButton({
+  starred,
+  onToggle,
+  disabled,
+  className = "",
+}: WatchButtonProps) {
   return (
     <button
       type="button"
@@ -22,7 +26,12 @@ export function WatchButton({ starred, onToggle, disabled, className = "" }: Wat
           : "border-border-strong bg-bg-surface hover:bg-bg-subtle"
       } ${className}`}
     >
-      <img src={starred ? starFilled : starOutline} alt="" width={20} height={20} />
+      <img
+        src={starred ? starFilled : starOutline}
+        alt=""
+        width={20}
+        height={20}
+      />
       {starred ? "In watchlist" : "Add to watchlist"}
     </button>
   );

@@ -10,7 +10,11 @@ import { useMediaQuery } from "../hooks/useMediaQuery";
 import { SimpleChartPanel } from "./SimpleChartPanel";
 
 // Loaded on first use: phones and Simple-only visitors never download the chart library.
-const ProChartPanel = lazy(() => import("./ProChartPanel").then((module) => ({ default: module.ProChartPanel })));
+const ProChartPanel = lazy(() =>
+  import("./ProChartPanel").then((module) => ({
+    default: module.ProChartPanel,
+  })),
+);
 
 interface PriceChartPanelProps {
   symbol: Ticker;
@@ -31,7 +35,7 @@ export function PriceChartPanel({ symbol }: PriceChartPanelProps) {
   if (!wide) return <SimpleChartPanel symbol={symbol} />;
 
   const toggle = <ChartModeToggle value={mode} onChange={setMode} />;
-  // The key restarts the fade-in when the mode changes.
+
   return (
     <div key={mode} className="animate-fade-in motion-reduce:animate-none">
       {mode === "pro" ? (

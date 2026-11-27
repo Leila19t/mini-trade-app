@@ -2,7 +2,6 @@ import { Link } from "react-router";
 import logo from "../../assets/logo.svg";
 import { paths } from "../../helpers/constants";
 
-/** Logo + app name. Always links home. */
 export function Brand() {
   return (
     <Link

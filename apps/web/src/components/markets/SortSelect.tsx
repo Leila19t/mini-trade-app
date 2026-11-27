@@ -8,11 +8,6 @@ interface SortSelectProps {
   onChange: (value: SortKey) => void;
 }
 
-/**
- * Sort dropdown. A custom listbox instead of a native <select>, which looks
- * different on every OS. Follows the WAI-ARIA "select-only combobox" pattern:
- * focus stays on the button and `aria-activedescendant` points at the active option.
- */
 export function SortSelect({ value, onChange }: SortSelectProps) {
   const id = useId();
   const labelId = `${id}-label`;
@@ -32,7 +27,10 @@ export function SortSelect({ value, onChange }: SortSelectProps) {
   useEffect(() => {
     if (!open) return;
     function onPointerDown(event: PointerEvent) {
-      if (event.target instanceof Node && !rootRef.current?.contains(event.target)) {
+      if (
+        event.target instanceof Node &&
+        !rootRef.current?.contains(event.target)
+      ) {
         setOpen(false);
       }
     }
@@ -142,7 +140,9 @@ export function SortSelect({ value, onChange }: SortSelectProps) {
               onPointerDown={(event) => event.preventDefault()}
               onClick={() => choose(index)}
               className={`cursor-pointer rounded-sm px-3 py-2 ${
-                isSelected ? "font-semibold text-brand-primary" : "text-text-primary"
+                isSelected
+                  ? "font-semibold text-brand-primary"
+                  : "text-text-primary"
               } ${isActive ? "bg-bg-subtle" : ""}`}
             >
               {option.label}

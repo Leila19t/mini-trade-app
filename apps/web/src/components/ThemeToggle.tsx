@@ -7,7 +7,6 @@ interface ThemeToggleProps {
   onToggle: () => void;
 }
 
-/** Light shows a moon (switch to dark); dark shows a sun (switch to light), as in Figma. */
 export function ThemeToggle({ theme, onToggle }: ThemeToggleProps) {
   const next = theme === "dark" ? "light" : "dark";
 

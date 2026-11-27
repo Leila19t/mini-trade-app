@@ -2,9 +2,7 @@ import type { ReactNode } from "react";
 
 const tones = {
   neutral: "bg-bg-subtle text-text-muted",
-  /** Good news: same colours as a rising price. */
   up: "bg-price-up-subtle text-price-up",
-  /** Bad news: same colours as a falling price. */
   down: "bg-price-down-subtle text-price-down",
   warning: "bg-warning-subtle text-warning-text",
 };

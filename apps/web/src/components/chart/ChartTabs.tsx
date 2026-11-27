@@ -2,14 +2,19 @@ interface ChartTabsProps<T extends string> {
   options: readonly T[];
   value: T;
   onChange: (value: T) => void;
-  /** Accessible name of the group, e.g. "Chart range". */
+
   label: string;
-  /** Phones: tabs share the full width. */
+
   fullWidth?: boolean;
 }
 
-/** Segmented control above the chart (Figma "Range tabs"), for ranges and candle intervals. */
-export function ChartTabs<T extends string>({ options, value, onChange, label, fullWidth = false }: ChartTabsProps<T>) {
+export function ChartTabs<T extends string>({
+  options,
+  value,
+  onChange,
+  label,
+  fullWidth = false,
+}: ChartTabsProps<T>) {
   return (
     <div
       role="group"

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Ticker } from "./primitives";
 
-/** The user's starred stocks, most recently added first. */
+/** The user's starred stocks. */
 export const Watchlist = z.object({
   symbols: z.array(Ticker),
 });

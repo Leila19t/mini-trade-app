@@ -1,11 +1,6 @@
 import { Toast } from "../components/feedback/Toast";
 import { dismissToast, useToast } from "../hooks/useToasts";
 
-/**
- * Where toasts appear: bottom centre, above everything (and above the sticky
- * watch bar on phones). The live region is always mounted so screen readers
- * announce each new toast.
- */
 export function ToastRegion() {
   const toast = useToast();
 
@@ -17,7 +12,11 @@ export function ToastRegion() {
     >
       {toast && (
         <div className="pointer-events-auto" key={toast.id}>
-          <Toast message={toast.message} action={toast.action} onDismiss={dismissToast} />
+          <Toast
+            message={toast.message}
+            action={toast.action}
+            onDismiss={dismissToast}
+          />
         </div>
       )}
     </div>

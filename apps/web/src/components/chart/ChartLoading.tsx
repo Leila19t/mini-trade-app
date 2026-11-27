@@ -1,6 +1,5 @@
 import { CHART_HEIGHT, EmptyGrid } from "./EmptyGrid";
 
-/** First load of a chart: grid lines and a pulsing block, in the chart's own size. */
 export function ChartLoading() {
   return (
     <div aria-busy className={`relative ${CHART_HEIGHT}`}>

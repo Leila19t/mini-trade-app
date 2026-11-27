@@ -1,16 +1,19 @@
 import type { ReactNode, Ref } from "react";
 
 interface ChartCardProps {
-  /** Shows the thin progress bar while a new range or interval loads. */
   loading: boolean;
-  /** Fills the screen edge to edge (the Pro chart's fullscreen mode). */
+
   fullscreen?: boolean;
   ref?: Ref<HTMLElement>;
   children: ReactNode;
 }
 
-/** The chart card on the detail page, shared by the Simple and Pro charts. A plain panel on phones. */
-export function ChartCard({ loading, fullscreen = false, ref, children }: ChartCardProps) {
+export function ChartCard({
+  loading,
+  fullscreen = false,
+  ref,
+  children,
+}: ChartCardProps) {
   return (
     <section
       ref={ref}

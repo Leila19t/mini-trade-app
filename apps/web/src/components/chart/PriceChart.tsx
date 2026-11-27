@@ -1,5 +1,11 @@
 import type { HistoryPoint, Range } from "@mini-trade/contracts";
-import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type PointerEvent,
+} from "react";
 import {
   chartGeometry,
   formatAxisDate,
@@ -12,25 +18,35 @@ import type { Direction } from "../../helpers/types";
 import { formatPrice } from "../../helpers/utils";
 import { useElementWidth } from "../../hooks/useElementWidth";
 
-/** Below this width the chart drops the y-axis and gets shorter (Figma "Mobile · Detail"). */
+/** Below this width the chart drops the y-axis and gets shorter. */
 const COMPACT_WIDTH = 520;
-/** Room for the y-axis labels on the right (1080 − 1024 in Figma). */
+/** Room for the y-axis labels on the right. */
 const Y_AXIS_WIDTH = 56;
 /** Space under the plot for the date labels. */
 const X_AXIS_HEIGHT = 24;
 
 const colors: Record<Direction, { line: string; area: string; dot: string }> = {
-  up: { line: "stroke-price-up", area: "fill-price-up-subtle", dot: "fill-price-up" },
-  down: { line: "stroke-price-down", area: "fill-price-down-subtle", dot: "fill-price-down" },
-  flat: { line: "stroke-text-muted", area: "fill-bg-subtle", dot: "fill-text-muted" },
+  up: {
+    line: "stroke-price-up",
+    area: "fill-price-up-subtle",
+    dot: "fill-price-up",
+  },
+  down: {
+    line: "stroke-price-down",
+    area: "fill-price-down-subtle",
+    dot: "fill-price-down",
+  },
+  flat: {
+    line: "stroke-text-muted",
+    area: "fill-bg-subtle",
+    dot: "fill-text-muted",
+  },
 };
 
 interface PriceChartProps {
   points: readonly HistoryPoint[];
   range: Range;
-  /** Line colour follows the range's direction. */
   direction: Direction;
-  /** Accessible name, e.g. "NVDA price, past month". */
   label: string;
 }
 
@@ -39,7 +55,12 @@ interface PriceChartProps {
  * tooltip; arrow keys move it for keyboard users. The last point is the live
  * price, marked with a dot.
  */
-export function PriceChart({ points, range, direction, label }: PriceChartProps) {
+export function PriceChart({
+  points,
+  range,
+  direction,
+  label,
+}: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const width = useElementWidth(containerRef);
   const [active, setActive] = useState<number | null>(null);
@@ -54,13 +75,17 @@ export function PriceChart({ points, range, direction, label }: PriceChartProps)
   );
   const color = colors[direction];
 
-  const activeIndex = active === null ? null : Math.min(active, points.length - 1);
-  const activeCoord = activeIndex === null ? undefined : geometry.coords[activeIndex];
+  const activeIndex =
+    active === null ? null : Math.min(active, points.length - 1);
+  const activeCoord =
+    activeIndex === null ? undefined : geometry.coords[activeIndex];
   const lastCoord = geometry.coords[geometry.coords.length - 1];
 
   const pointAt = (event: PointerEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
-    setActive(nearestIndex(event.clientX - rect.left, points.length, plot.width));
+    setActive(
+      nearestIndex(event.clientX - rect.left, points.length, plot.width),
+    );
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -82,7 +107,8 @@ export function PriceChart({ points, range, direction, label }: PriceChartProps)
   };
 
   // Keep the tooltip on screen: flip it to the left of the crosshair near the right edge.
-  const tooltipOnLeft = activeCoord !== undefined && activeCoord.x > plot.width * 0.7;
+  const tooltipOnLeft =
+    activeCoord !== undefined && activeCoord.x > plot.width * 0.7;
 
   return (
     <div
@@ -100,10 +126,27 @@ export function PriceChart({ points, range, direction, label }: PriceChartProps)
     >
       {width > 0 && (
         <>
-          <svg aria-hidden width={width} height={plot.height} className="absolute top-0 left-0 overflow-visible">
+          <svg
+            aria-hidden
+            width={width}
+            height={plot.height}
+            className="absolute top-0 left-0 overflow-visible"
+          >
             {geometry.gridPrices.map((_, i) => {
-              const y = Math.round((i / (geometry.gridPrices.length - 1)) * plot.height) - 0.5;
-              return <line key={i} x1={0} x2={plot.width} y1={y} y2={y} className="stroke-border-default" />;
+              const y =
+                Math.round(
+                  (i / (geometry.gridPrices.length - 1)) * plot.height,
+                ) - 0.5;
+              return (
+                <line
+                  key={i}
+                  x1={0}
+                  x2={plot.width}
+                  y1={y}
+                  y2={y}
+                  className="stroke-border-default"
+                />
+              );
             })}
             <path d={geometry.area} className={color.area} />
             <path
@@ -114,7 +157,14 @@ export function PriceChart({ points, range, direction, label }: PriceChartProps)
               strokeLinecap="round"
               className={color.line}
             />
-            {lastCoord && <circle cx={lastCoord.x} cy={lastCoord.y} r={4} className={color.dot} />}
+            {lastCoord && (
+              <circle
+                cx={lastCoord.x}
+                cy={lastCoord.y}
+                r={4}
+                className={color.dot}
+              />
+            )}
             {activeCoord && (
               <>
                 <line
@@ -142,28 +192,38 @@ export function PriceChart({ points, range, direction, label }: PriceChartProps)
                 key={i}
                 aria-hidden
                 className="absolute text-[11px] leading-[normal] text-text-muted tabular-nums"
-                style={{ left: plot.width + 10, top: (i / (geometry.gridPrices.length - 1)) * plot.height - 7 }}
+                style={{
+                  left: plot.width + 10,
+                  top: (i / (geometry.gridPrices.length - 1)) * plot.height - 7,
+                }}
               >
                 {formatGridPrice(price, geometry.gridPrices)}
               </span>
             ))}
 
           {/* x-axis: dates, first left-aligned, last right-aligned. */}
-          {xLabelIndices(points.length, compact ? 3 : 5).map((index, i, all) => {
-            const coord = geometry.coords[index];
-            if (!coord) return null;
-            const align = i === 0 ? "" : i === all.length - 1 ? "-translate-x-full" : "-translate-x-1/2";
-            return (
-              <span
-                key={index}
-                aria-hidden
-                className={`absolute text-[11px] leading-[normal] whitespace-nowrap text-text-muted ${align}`}
-                style={{ left: coord.x, top: plot.height + 8 }}
-              >
-                {formatAxisDate(coord.point.timestamp, range)}
-              </span>
-            );
-          })}
+          {xLabelIndices(points.length, compact ? 3 : 5).map(
+            (index, i, all) => {
+              const coord = geometry.coords[index];
+              if (!coord) return null;
+              const align =
+                i === 0
+                  ? ""
+                  : i === all.length - 1
+                    ? "-translate-x-full"
+                    : "-translate-x-1/2";
+              return (
+                <span
+                  key={index}
+                  aria-hidden
+                  className={`absolute text-[11px] leading-[normal] whitespace-nowrap text-text-muted ${align}`}
+                  style={{ left: coord.x, top: plot.height + 8 }}
+                >
+                  {formatAxisDate(coord.point.timestamp, range)}
+                </span>
+              );
+            },
+          )}
 
           {activeCoord && (
             <div
@@ -173,7 +233,10 @@ export function PriceChart({ points, range, direction, label }: PriceChartProps)
               }`}
               style={{
                 left: activeCoord.x + (tooltipOnLeft ? -12 : 12),
-                top: Math.max(0, Math.min(plot.height - 48, activeCoord.y - 60)),
+                top: Math.max(
+                  0,
+                  Math.min(plot.height - 48, activeCoord.y - 60),
+                ),
               }}
             >
               <span className="text-[11px] font-medium text-inverse-text-muted">

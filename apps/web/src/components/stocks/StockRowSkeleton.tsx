@@ -1,4 +1,3 @@
-/** Grey placeholder in the exact layout of StockRow, so nothing jumps when data arrives. */
 export function StockRowSkeleton() {
   const block = "shrink-0 bg-bg-subtle";
 

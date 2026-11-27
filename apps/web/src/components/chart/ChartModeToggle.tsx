@@ -12,10 +12,13 @@ interface ChartModeToggleProps {
   onChange: (mode: ChartMode) => void;
 }
 
-/** Simple / Pro switch at the right of the chart header (Figma "ChartModeToggle"). Desktop only; P toggles it. */
 export function ChartModeToggle({ value, onChange }: ChartModeToggleProps) {
   return (
-    <div role="group" aria-label="Chart type" className="flex shrink-0 gap-0.5 rounded-lg bg-bg-subtle p-0.75">
+    <div
+      role="group"
+      aria-label="Chart type"
+      className="flex shrink-0 gap-0.5 rounded-lg bg-bg-subtle p-0.75"
+    >
       {MODES.map((mode) => {
         const selected = mode.value === value;
         return (

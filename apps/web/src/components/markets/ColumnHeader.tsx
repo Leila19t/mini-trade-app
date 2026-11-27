@@ -4,7 +4,6 @@ interface SortableColumn {
   label: string;
   desc: SortKey;
   asc: SortKey;
-  /** Read out with the direction, e.g. "highest first". */
   descLabel: string;
   ascLabel: string;
 }
@@ -29,9 +28,13 @@ interface ColumnHeaderProps {
   onSortChange: (sort: SortKey) => void;
 }
 
-function SortButton({ column, sort, onSortChange, className }: ColumnHeaderProps & { column: SortableColumn; className: string }) {
+function SortButton({
+  column,
+  sort,
+  onSortChange,
+  className,
+}: ColumnHeaderProps & { column: SortableColumn; className: string }) {
   const active = sort === column.desc || sort === column.asc;
-  // First click sorts high → low; clicking the active column flips it.
   const next = sort === column.desc ? column.asc : column.desc;
   const arrow = sort === column.desc ? "↓" : sort === column.asc ? "↑" : "↕";
 
@@ -49,7 +52,6 @@ function SortButton({ column, sort, onSortChange, className }: ColumnHeaderProps
   );
 }
 
-/** Column titles above the stock list. Price and Today sort when clicked. Hidden on phones. */
 export function ColumnHeader({ sort, onSortChange }: ColumnHeaderProps) {
   return (
     <div className="flex h-10 items-center gap-4 border-b border-border-default bg-bg-canvas px-5 text-xs leading-[normal] font-medium text-text-muted max-sm:hidden">
@@ -58,8 +60,18 @@ export function ColumnHeader({ sort, onSortChange }: ColumnHeaderProps) {
       <span className="w-65 min-w-0 shrink">Name</span>
       <span className="w-25 shrink-0 max-md:hidden">1D trend</span>
       <span className="flex-1" />
-      <SortButton column={PRICE} sort={sort} onSortChange={onSortChange} className="w-35 text-right" />
-      <SortButton column={TODAY} sort={sort} onSortChange={onSortChange} className="w-24 text-center" />
+      <SortButton
+        column={PRICE}
+        sort={sort}
+        onSortChange={onSortChange}
+        className="w-35 text-right"
+      />
+      <SortButton
+        column={TODAY}
+        sort={sort}
+        onSortChange={onSortChange}
+        className="w-24 text-center"
+      />
     </div>
   );
 }
