@@ -2,7 +2,6 @@ import { Link } from "react-router";
 import chevronLeft from "../../assets/icons/chevron-left.svg";
 import { paths } from "../../helpers/constants";
 
-/** "‹ Markets" at the top of the stock detail page, also on its wrong-symbol state. */
 export function BackToMarkets() {
   return (
     <Link

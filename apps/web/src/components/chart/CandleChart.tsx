@@ -15,7 +15,13 @@ import {
   type UTCTimestamp,
 } from "lightweight-charts";
 import { useEffect, useEffectEvent, useRef, type KeyboardEvent } from "react";
-import { candleEnd, formatCandleTime, formatCountdown, toChartTime, withAlpha } from "../../helpers/candles";
+import {
+  candleEnd,
+  formatCandleTime,
+  formatCountdown,
+  toChartTime,
+  withAlpha,
+} from "../../helpers/candles";
 import { CANDLE_ZOOM } from "../../helpers/constants";
 import { formatPrice } from "../../helpers/utils";
 import { useNow } from "../../hooks/useNow";
@@ -23,9 +29,7 @@ import type { Theme } from "../../helpers/types";
 import { useTheme } from "../../hooks/useTheme";
 import { ZoomControls } from "./ZoomControls";
 
-/** Volume bars use the candle colours at this opacity (Figma: 35%). */
 const VOLUME_ALPHA = 0.35;
-/** Price pane margins: the bottom quarter is left to the volume bars. */
 const PRICE_MARGINS = { top: 0.08, bottom: 0.26 };
 const VOLUME_MARGINS = { top: 0.8, bottom: 0 };
 
@@ -37,7 +41,6 @@ interface ChartColors {
   label: string;
 }
 
-/** The library draws on a canvas, so it gets the design tokens as plain colours. */
 function readColors(): ChartColors {
   const css = getComputedStyle(document.documentElement);
   const token = (name: string) => css.getPropertyValue(name).trim();
@@ -50,7 +53,6 @@ function readColors(): ChartColors {
   };
 }
 
-/** Token colours per theme, read once the theme is applied to <html>. */
 const colorsByTheme: Partial<Record<Theme, ChartColors>> = {};
 function colorsFor(theme: Theme): ChartColors {
   colorsByTheme[theme] ??= readColors();
@@ -68,7 +70,10 @@ const toBar = (candle: Candle): CandlestickData<Time> => ({
   close: candle.close,
 });
 
-const toVolume = (candle: Candle, colors: ChartColors): HistogramData<Time> => ({
+const toVolume = (
+  candle: Candle,
+  colors: ChartColors,
+): HistogramData<Time> => ({
   time: chartTime(candle.timestamp),
   value: candle.volume,
   color: withAlpha(isUp(candle) ? colors.up : colors.down, VOLUME_ALPHA),
@@ -78,8 +83,16 @@ const toVolume = (candle: Candle, colors: ChartColors): HistogramData<Time> => (
 const axisFormats = {
   year: new Intl.DateTimeFormat("en-US", { year: "numeric", timeZone: "UTC" }),
   month: new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "UTC" }),
-  day: new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }),
-  time: new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "UTC" }),
+  day: new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }),
+  time: new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+  }),
 };
 
 function formatTickMark(time: Time, type: TickMarkType): string {
@@ -91,8 +104,14 @@ function formatTickMark(time: Time, type: TickMarkType): string {
 }
 
 /** Shows the latest `count` candles, flush with the live one. */
-function showLatest(chart: IChartApi, total: number, count: number = CANDLE_ZOOM.initial) {
-  chart.timeScale().setVisibleLogicalRange({ from: total - count - 0.5, to: total - 0.5 });
+function showLatest(
+  chart: IChartApi,
+  total: number,
+  count: number = CANDLE_ZOOM.initial,
+) {
+  chart
+    .timeScale()
+    .setVisibleLogicalRange({ from: total - count - 0.5, to: total - 0.5 });
 }
 
 /**
@@ -103,7 +122,10 @@ function zoomBy(chart: IChartApi, total: number, factor: number) {
   const timeScale = chart.timeScale();
   const range = timeScale.getVisibleLogicalRange();
   if (!range) return;
-  const width = Math.min(Math.max((range.to - range.from) / factor, CANDLE_ZOOM.min), total);
+  const width = Math.min(
+    Math.max((range.to - range.from) / factor, CANDLE_ZOOM.min),
+    total,
+  );
   timeScale.setVisibleLogicalRange({ from: range.to - width, to: range.to });
 }
 
@@ -153,7 +175,13 @@ interface CandleChartProps {
  * older ones; the wheel, a pinch, the buttons or +/− zoom; 0 goes back to the
  * latest. Live ticks and refetches keep whatever view the user picked.
  */
-export function CandleChart({ candles, interval, label, onHoverChange, fill = false }: CandleChartProps) {
+export function CandleChart({
+  candles,
+  interval,
+  label,
+  onHoverChange,
+  fill = false,
+}: CandleChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const api = useRef<ChartApi | null>(null);
   /** What's on the chart now, so a live tick only redraws the last candle. */
@@ -165,7 +193,9 @@ export function CandleChart({ candles, interval, label, onHoverChange, fill = fa
   const { theme } = useTheme();
   const colors = colorsFor(theme);
   const now = useNow(1000);
-  const reportHover = useEffectEvent((index: number | null) => onHoverChange(index));
+  const reportHover = useEffectEvent((index: number | null) =>
+    onHoverChange(index),
+  );
 
   // Create the chart once; the effects below keep it in sync.
   useEffect(() => {
@@ -175,7 +205,12 @@ export function CandleChart({ candles, interval, label, onHoverChange, fill = fa
     const chart = createChart(container, {
       autoSize: true,
       // Drag or swipe through history; the wheel and pinch zoom (so the page doesn't scroll over the chart).
-      handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+      handleScroll: {
+        mouseWheel: true,
+        pressedMouseMove: true,
+        horzTouchDrag: true,
+        vertTouchDrag: false,
+      },
       handleScale: {
         mouseWheel: true,
         pinch: true,
@@ -190,7 +225,12 @@ export function CandleChart({ candles, interval, label, onHoverChange, fill = fa
       },
       grid: { vertLines: { visible: false } },
       rightPriceScale: { borderVisible: false, scaleMargins: PRICE_MARGINS },
-      timeScale: { borderVisible: false, fixLeftEdge: true, fixRightEdge: true, tickMarkFormatter: formatTickMark },
+      timeScale: {
+        borderVisible: false,
+        fixLeftEdge: true,
+        fixRightEdge: true,
+        tickMarkFormatter: formatTickMark,
+      },
       crosshair: {
         mode: CrosshairMode.Normal,
         vertLine: { style: LineStyle.Solid, width: 1 },
@@ -211,7 +251,10 @@ export function CandleChart({ candles, interval, label, onHoverChange, fill = fa
     chart.priceScale("volume").applyOptions({ scaleMargins: VOLUME_MARGINS });
 
     chart.subscribeCrosshairMove((param) => {
-      const index = param.time === undefined ? undefined : indexByTime.current.get(param.time as number);
+      const index =
+        param.time === undefined
+          ? undefined
+          : indexByTime.current.get(param.time as number);
       reportHover(index ?? null);
     });
 
@@ -226,7 +269,10 @@ export function CandleChart({ candles, interval, label, onHoverChange, fill = fa
   useEffect(() => {
     const current = api.current;
     if (!current) return;
-    const crosshairLine = { color: colors.text, labelBackgroundColor: colors.label };
+    const crosshairLine = {
+      color: colors.text,
+      labelBackgroundColor: colors.label,
+    };
     current.chart.applyOptions({
       layout: { textColor: colors.text },
       grid: { horzLines: { color: colors.grid } },
@@ -243,7 +289,10 @@ export function CandleChart({ candles, interval, label, onHoverChange, fill = fa
   useEffect(() => {
     api.current?.chart.applyOptions({
       timeScale: { timeVisible: interval !== "1D" },
-      localization: { timeFormatter: (time: Time) => formatCandleTime((time as number) * 1000, interval, true) },
+      localization: {
+        timeFormatter: (time: Time) =>
+          formatCandleTime((time as number) * 1000, interval, true),
+      },
     });
   }, [interval]);
 
@@ -252,7 +301,9 @@ export function CandleChart({ candles, interval, label, onHoverChange, fill = fa
   useEffect(() => {
     const current = api.current;
     if (!current) return;
-    indexByTime.current = new Map(candles.map((candle, i) => [chartTime(candle.timestamp), i]));
+    indexByTime.current = new Map(
+      candles.map((candle, i) => [chartTime(candle.timestamp), i]),
+    );
 
     const before = drawn.current;
     const last = candles.at(-1);
@@ -270,18 +321,25 @@ export function CandleChart({ candles, interval, label, onHoverChange, fill = fa
     } else {
       current.candles.setData(candles.map(toBar));
       current.volume.setData(candles.map((candle) => toVolume(candle, colors)));
-      if (before.interval !== interval) showLatest(current.chart, candles.length);
+      if (before.interval !== interval)
+        showLatest(current.chart, candles.length);
     }
     drawn.current = { candles, colors, interval };
   }, [candles, colors, interval]);
 
-  const zoomIn = () => api.current && zoomBy(api.current.chart, candles.length, CANDLE_ZOOM.step);
-  const zoomOut = () => api.current && zoomBy(api.current.chart, candles.length, 1 / CANDLE_ZOOM.step);
-  const resetView = () => api.current && showLatest(api.current.chart, candles.length);
+  const zoomIn = () =>
+    api.current && zoomBy(api.current.chart, candles.length, CANDLE_ZOOM.step);
+  const zoomOut = () =>
+    api.current &&
+    zoomBy(api.current.chart, candles.length, 1 / CANDLE_ZOOM.step);
+  const resetView = () =>
+    api.current && showLatest(api.current.chart, candles.length);
 
   // Countdown to the live candle's close, next to the live price on the axis.
   const last = candles.at(-1);
-  const countdown = last ? formatCountdown(candleEnd(last.timestamp, interval) - now) : "";
+  const countdown = last
+    ? formatCountdown(candleEnd(last.timestamp, interval) - now)
+    : "";
   useEffect(() => {
     api.current?.candles.applyOptions({ title: countdown });
   }, [countdown]);
@@ -296,7 +354,11 @@ export function CandleChart({ candles, interval, label, onHoverChange, fill = fa
       return;
     }
     scrollIntoView(current.chart, index);
-    current.chart.setCrosshairPosition(candle.close, chartTime(candle.timestamp), current.candles);
+    current.chart.setCrosshairPosition(
+      candle.close,
+      chartTime(candle.timestamp),
+      current.candles,
+    );
     onHoverChange(index);
   };
 
@@ -310,7 +372,13 @@ export function CandleChart({ candles, interval, label, onHoverChange, fill = fa
       Home: 0,
       End: lastIndex,
     };
-    const zooms: Record<string, () => void> = { "+": zoomIn, "=": zoomIn, "-": zoomOut, "_": zoomOut, "0": resetView };
+    const zooms: Record<string, () => void> = {
+      "+": zoomIn,
+      "=": zoomIn,
+      "-": zoomOut,
+      _: zoomOut,
+      "0": resetView,
+    };
     const zoom = zooms[event.key];
     if (zoom) {
       event.preventDefault();

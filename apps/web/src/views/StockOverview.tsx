@@ -4,7 +4,14 @@ import { LiveStatus } from "../components/stocks/LiveStatus";
 import { StarButton } from "../components/stocks/StarButton";
 import { StockLogo } from "../components/stocks/StockLogo";
 import { WatchButton } from "../components/stocks/WatchButton";
-import { changeBetween, directionPill, directionText, formatPrice, formatSignedPercent, formatSignedPrice } from "../helpers/utils";
+import {
+  changeBetween,
+  directionPill,
+  directionText,
+  formatPrice,
+  formatSignedPercent,
+  formatSignedPrice,
+} from "../helpers/utils";
 import { useConnectionStatus } from "../hooks/useConnectionStatus";
 import { useLivePrice } from "../hooks/useLivePrice";
 import { useNow } from "../hooks/useNow";
@@ -12,11 +19,10 @@ import { useWatchToggle } from "../hooks/useWatchToggle";
 
 interface StockOverviewProps {
   symbol: Ticker;
-  /** Undefined while loading: skeleton in the same layout. */
+
   stock: StockDetail | undefined;
 }
 
-/** Top of the detail page: back link, name, watch button, and the live price with today's change. */
 export function StockOverview({ symbol, stock }: StockOverviewProps) {
   const live = useLivePrice(symbol);
   const { status } = useConnectionStatus();
@@ -25,15 +31,20 @@ export function StockOverview({ symbol, stock }: StockOverviewProps) {
 
   const price = live?.price ?? stock?.price;
   const updatedAt = live?.timestamp ?? stock?.updatedAt ?? now;
-  const change = stock && price !== undefined ? changeBetween(price, stock.stats.price24hAgo) : undefined;
-  const changeText = change && `${formatSignedPrice(change.amount)} (${formatSignedPercent(change.fraction)}) today`;
+  const change =
+    stock && price !== undefined
+      ? changeBetween(price, stock.stats.price24hAgo)
+      : undefined;
+  const changeText =
+    change &&
+    `${formatSignedPrice(change.amount)} (${formatSignedPercent(change.fraction)}) today`;
 
   return (
     <>
       <nav className="flex items-center max-sm:pt-2">
         <BackToMarkets />
         <span className="flex-1" />
-        {/* Phones: the star in the nav bar mirrors the sticky watch button. */}
+
         <StarButton
           symbol={symbol}
           starred={starred}
@@ -47,7 +58,9 @@ export function StockOverview({ symbol, stock }: StockOverviewProps) {
       <header className="flex items-center gap-3.5 max-sm:gap-2.5">
         <StockLogo symbol={symbol} size="detail" />
         <div className="flex min-w-0 flex-col gap-0.5 leading-[normal] max-sm:gap-0">
-          <h1 className="text-2xl font-bold text-text-primary max-sm:text-lg">{symbol}</h1>
+          <h1 className="text-2xl font-bold text-text-primary max-sm:text-lg">
+            {symbol}
+          </h1>
           {stock ? (
             <p className="truncate text-sm text-text-muted max-sm:text-[13px]">
               {stock.name}
@@ -62,7 +75,12 @@ export function StockOverview({ symbol, stock }: StockOverviewProps) {
           )}
         </div>
         <span className="flex-1" />
-        <WatchButton starred={starred} onToggle={toggle} disabled={!ready} className="max-sm:hidden" />
+        <WatchButton
+          starred={starred}
+          onToggle={toggle}
+          disabled={!ready}
+          className="max-sm:hidden"
+        />
       </header>
 
       {price !== undefined && change ? (

@@ -6,7 +6,6 @@ import { showToast } from "./useToasts";
 
 interface ToggleVariables {
   symbol: Ticker;
-  /** true to star, false to unstar. */
   starred: boolean;
 }
 

@@ -10,22 +10,26 @@ const variants: Record<ConnectionStatus, { label: string; dot: string }> = {
 
 interface LiveStatusProps {
   status: ConnectionStatus;
-  /** When this price last changed (epoch ms). */
   updatedAt: number;
   now: number;
 }
 
-/** "● Live · updated just now" next to the big price. Phones show only the state. */
 export function LiveStatus({ status, updatedAt, now }: LiveStatusProps) {
   const { label, dot } = variants[status];
 
   return (
     <span className="flex items-center gap-1.5 text-[13px] leading-[normal] whitespace-nowrap text-text-muted">
-      <span aria-hidden className={`size-2 shrink-0 rounded-full max-sm:size-1.5 ${dot}`} />
+      <span
+        aria-hidden
+        className={`size-2 shrink-0 rounded-full max-sm:size-1.5 ${dot}`}
+      />
       <span>
         {label}
         {status !== "connecting" && (
-          <span className="max-sm:hidden"> · updated {formatTimeAgo(updatedAt, now)}</span>
+          <span className="max-sm:hidden">
+            {" "}
+            · updated {formatTimeAgo(updatedAt, now)}
+          </span>
         )}
       </span>
     </span>

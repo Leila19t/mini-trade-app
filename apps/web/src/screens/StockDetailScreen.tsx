@@ -15,7 +15,6 @@ import { WatchBar } from "../views/WatchBar";
 const PAGE =
   "mx-auto max-w-page px-6 pt-6 pb-12 max-sm:px-0 max-sm:pt-0 max-sm:pb-0";
 
-/** One stock: live price, chart and stats. URL: /stocks/:symbol?range=1M */
 export function StockDetailScreen() {
   const raw = useParams().symbol ?? "";
   const { search } = useLocation();
@@ -23,14 +22,15 @@ export function StockDetailScreen() {
   const parsed = Ticker.safeParse(raw);
   if (parsed.success) return <StockDetail symbol={parsed.data} />;
 
-  // Lowercase links still work: /stocks/nvda → /stocks/NVDA (the range is kept).
   const upper = Ticker.safeParse(raw.toUpperCase());
-  if (upper.success) return <Navigate to={{ pathname: paths.stock(upper.data), search }} replace />;
+  if (upper.success)
+    return (
+      <Navigate to={{ pathname: paths.stock(upper.data), search }} replace />
+    );
 
   return <WrongSymbol symbol={raw} />;
 }
 
-/** A symbol that can't exist, or one this market doesn't have: back link and the message in the chart card. */
 function WrongSymbol({ symbol }: { symbol: string }) {
   return (
     <main className={PAGE}>

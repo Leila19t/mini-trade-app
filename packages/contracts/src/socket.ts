@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { Price, Ticker, Timestamp } from "./primitives";
 
-/** Path of the WebSocket endpoint on the mock server. */
+
 export const WS_PATH = "/ws";
 
-/** One price update for one stock. */
+
 export const PriceTick = z.object({
   symbol: Ticker,
   price: Price,
@@ -16,7 +16,7 @@ export type PriceTick = z.infer<typeof PriceTick>;
 // Client → server
 // ---------------------------------------------------------------------------
 
-/** Start receiving prices for these symbols. Subscribing twice is a no-op. */
+/** Start receiving prices for these symbols. */
 export const SubscribeMessage = z.object({
   type: z.literal("subscribe"),
   symbols: z.array(Ticker).min(1),
@@ -38,7 +38,7 @@ export type ClientMessage = z.infer<typeof ClientMessage>;
 // Server → client
 // ---------------------------------------------------------------------------
 
-/** Sent once on connect. The client treats the socket as dead after ~2 missed heartbeats. */
+/** Sent once on connect. */
 export const WelcomeMessage = z.object({
   type: z.literal("welcome"),
   serverTime: Timestamp,

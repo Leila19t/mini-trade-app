@@ -1,13 +1,20 @@
 import type { ButtonHTMLAttributes } from "react";
 
-interface ChartIconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
+interface ChartIconButtonProps extends Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  "children"
+> {
   icon: string;
-  /** Accessible name, also shown as the tooltip. */
+
   label: string;
 }
 
-/** Small square icon button for the Pro chart's controls (zoom, fullscreen). */
-export function ChartIconButton({ icon, label, className = "", ...props }: ChartIconButtonProps) {
+export function ChartIconButton({
+  icon,
+  label,
+  className = "",
+  ...props
+}: ChartIconButtonProps) {
   return (
     <button
       type="button"

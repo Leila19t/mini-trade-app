@@ -119,6 +119,12 @@ How I used AI on this project: what I asked for, what it got right, and where I 
 - 46 tests: the live-candle and time helpers, the OHLCV legend, the Simple/Pro toggle, the chart wiring (Lightweight Charts mocked: full redraw vs. last-candle update, countdown, crosshair, keyboard), the Pro panel (legend, hover, interval in the URL, loading/error/placeholder states) and the mode switch (URL vs. remembered mode, P shortcut, phones always Simple, resizing).
 - Correction it caught itself: a time-formatting test only passed in some time zones (it failed when run as New York). Rewritten to build dates from local parts; checked in UTC, Dubai, New York and UTC+14.
 
+### 2026-11-27: my code review
+
+- Before submitting, I reviewed all the code myself in two passes.
+- UI review (commit "UI code review", 45 files): wrapped long lines so components, props and options read at about 80 columns, removed comments that only restated the code, and tidied the chart, markets and stock components, screens, views and contracts.
+- Logic review: a second pass through the non-UI code (state, hooks, the socket client and the mock server) to check that I understand each piece and can explain it, cleaning up as I went.
+
 ## Takeaways
 
 - The AI is fast at diagnosis when it can read the actual files, rather than guessing from an error message.

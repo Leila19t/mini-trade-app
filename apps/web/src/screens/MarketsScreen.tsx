@@ -10,9 +10,6 @@ import { ConnectionBanner } from "../views/ConnectionBanner";
 import { MarketsHeader } from "../views/MarketsHeader";
 import { MarketsList } from "../views/MarketsList";
 
-/**
- * Home screen: every stock with its live price, plus the user's watchlist.
- */
 export function MarketsScreen() {
   const panelId = useId();
   const { search, tab, sort, setTab, setSort } = useMarketsParams();
@@ -21,7 +18,6 @@ export function MarketsScreen() {
   const watchlist = useWatchlist();
   const { status, lastTickAt } = useConnectionStatus();
 
-  // Only count starred symbols that are actually in the stock list.
   const watchedCount =
     stocks.data &&
     watchlist.data?.filter((symbol) =>
